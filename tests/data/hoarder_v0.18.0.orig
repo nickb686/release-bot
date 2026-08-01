@@ -75,7 +75,7 @@ We also now have a public roadmap which you can check for the features that we'r
 
 To upgrade:
 * If you're using HOARDER_VERSION=release, run `docker compose pull && docker compose up -d`.
-* If you're pinning it to a specific version, upgrade the version and then run `docker compose pull && docker compose up -d`. 
+* If you're pinning it to a specific version, upgrade the version and then run `docker compose pull && docker compose up -d`.
 
 # All Commits
 

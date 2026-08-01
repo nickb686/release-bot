@@ -62,7 +62,7 @@ Clicking on the server build number on the web will now also show upgrade histor
 In the future we may look at combining this information with the new support/help modal\.
 
 🖼🖼```
-Light | Dark 
+Light | Dark
 ------+------
 image | image
 ```

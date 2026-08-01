@@ -8,13 +8,13 @@
 >
 > Note: if you **DO NOT** have `IMMICH_MEDIA_LOCATION` in your `.env` file, or if it is set to a path that starts with a `/` (absolute path), **THIS BREAKING CHANGE DOES NOT APPLY TO YOU.** Users of the all-in-one image (e.g., the unraid app) for instance are not affected.
 >
-> 
+>
 > <hr>
 >
-> 
+>
 > If you have a custom `IMMICH_MEDIA_LOCATION` environment variable set to a **relative path**, you will have to do the following process:
 >
-> 
+>
 > 1. Stop Immich (`docker compose stop`):
 > 2. Update Immich (`docker compose pull`)
 > 3. Update the environment variable to an absolute path, for example:
@@ -22,45 +22,45 @@
 > ```diff
 > -IMMICH_MEDIA_LOCATION=./my-library
 > +IMMICH_MEDIA_LOCATION=/usr/src/app/my-library
-> 
+>
 > ```
 >
-> 
+>
 > 4. Start Immich (`docker compose up -d --force-recreate`)
 > 5. After the server successfully starts up, connect to it (`docker exec ``*-it*`` immich_server /bin/sh`) and run  `immich-admin change-media-location`. When prompted, enter the appropriate values. For example:
 >
 > ```
 > docker exec -it immich_server /bin/sh
-> 
+>
 > $ immich-admin change-media-location
 > ...
 > ? Enter the previous value of IMMICH_MEDIA_LOCATION: ./my-library
 > ? Enter the new value of IMMICH_MEDIA_LOCATION: /usr/src/app/my-library
-> 
+>
 >   Previous value: ./my-library
 >   Current value:  /usr/src/app/my-library
-> 
+>
 >   Changing database paths from "my-library/*" to "/usr/src/app/my-library/*"
-> 
+>
 > ? Do you want to proceed? [Y/n] y
-> 
+>
 > Matching database file paths were updated successfully! 🎉
-> 
+>
 > You may now set IMMICH_MEDIA_LOCATION=/usr/src/app/my-library and restart!
-> 
+>
 > ```
 >
-> 
+>
 > ### Background/Motivation
 >
 > Relative paths have implied ambiguity, as they depend on the current working directory to resolve correctly, leading to issues like (#4465). This change removes this ambiguity and sets up the project to transition away from files living at `/usr/src/app/upload` entirely. Currently, the `upload` folder lives at `/usr/src/app/upload/upload`, which is *very* confusing… *for everyone*. This change opens to door for a future migration to something like `IMMICH_DATA=/data`, which a more sensible setup.
 >
-> 
+>
 > ## API Key changes (#20113)
 >
 > Note: This change may affect the use of third-party applications, such as ImmichGo, ImmichKios, or ImmichFrame.
 >
-> This release includes a change to how API Keys work, specifically when used with routes that don’t require a specific permission. Previously, a scoped API Key could access these routes, but they will now throw a forbidden error. Routes without a declared scope now implicitly require the “all” permission.  
+> This release includes a change to how API Keys work, specifically when used with routes that don’t require a specific permission. Previously, a scoped API Key could access these routes, but they will now throw a forbidden error. Routes without a declared scope now implicitly require the “all” permission.
 
 
 # Highlights
@@ -102,13 +102,13 @@ We've realized we can't honestly call the application stable or confidently reco
 - The data sync speed should be improved drastically. The data is being streamed to the mobile app instead of being sent there in a single large chunk. This will help users with a massive library.
 - The calculation of which data needs to be retrieved from the server is now performed on the server, rather than being calculated by the mobile app previously. This means lower CPU usage on the mobile app and quicker incremental sync.
 - The mobile app will now retrieve data from the server and maintain similar database tables within the app. This restructuring enables better offline operation and supports more complex usage behaviors.
-   
+
 #### Timeline/Display experience
 - The new timeline has been rewritten from the ground up to enhance scrolling and dragging behavior, making it easier for you to navigate the timeline.
 - The detail viewer is now more interactive, allowing you to scroll between photos or videos when the bottom detail sheet is opened.
 - The album views and other collection views are more lively, featuring a parallax effect to make your album/collection feel alive with *mesmerizing* animation.
 - You can now view all albums on the device, regardless of which album you have selected as the target for backing up. You can view them in the \`Library > On this device\` section. For users who want to select individual assets to back up to the server, they can perform that operation from here.
-   
+
 #### Upload
 - The upload mechanism has been rewritten from the ground up.
 - Upload is now handled by the OS, allowing for a better background upload operation. Instead of handling the uploading ourselves, we are now placing the photos and videos in a queue, which will run continuously when the Immich app is opened in the foreground and for a few minutes after it is put into the background. Then the OS will take over and start pulling tasks from the queue, handling the upload process by itself.
@@ -192,7 +192,7 @@ We missed capturing the moment when the project reached `69_420` stars, 😔
 
 <p align="center">
 
-<img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExamxub2V4MTRzaHc0dXV5b3JiemEza2I0eWViN2h5bHluc2RjdWxoMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/WrNfErHio7ZAc/giphy.gif" width="500" > 
+<img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExamxub2V4MTRzaHc0dXV5b3JiemEza2I0eWViN2h5bHluc2RjdWxoMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/WrNfErHio7ZAc/giphy.gif" width="500" >
 
 </p>
 
@@ -204,7 +204,7 @@ We missed capturing the moment when the project reached `69_420` stars, 😔
 
 <p align="center">
 
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjY2eWc5Y2F0ZW56MmR4aWE0dDhzZXlidXRmYWZyajl1bWZidXZpcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/87CKDqErVfMqY/giphy.gif" width="450" title="SUPPORT THE PROJECT!"> 
+<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjY2eWc5Y2F0ZW56MmR4aWE0dDhzZXlidXRmYWZyajl1bWZidXZpcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/87CKDqErVfMqY/giphy.gif" width="450" title="SUPPORT THE PROJECT!">
 
 </p>
 

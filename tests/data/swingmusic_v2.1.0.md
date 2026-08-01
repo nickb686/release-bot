@@ -11,7 +11,7 @@ Special thanks to @443pablo for the security report ❤️\.
 
 Enjoy\!
 
-✏ 
+✏
 
 The Docker container for this release is available here:
 

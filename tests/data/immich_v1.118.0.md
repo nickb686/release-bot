@@ -53,7 +53,7 @@ services:
     :
 -   command: [ "start.sh", "immich" ]
     ...
-    
+
 -  immich-microservices:
 -    container_name: immich_microservices
 -    ...

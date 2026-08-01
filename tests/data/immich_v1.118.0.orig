@@ -2,7 +2,7 @@
 
 Welcome to release `v1.118.0` of Immich. This version comes with several breaking changes, and also improvements to the mobile app UI and UX, a new documentation home page, as well as bug fixes and enhancements across the app. We hope you enjoy this release!
 
-> [!WARNING] 
+> [!WARNING]
 > ## Breaking changes
 > This release includes the following breaking changes:
 > 1. Port alignment
@@ -28,7 +28,7 @@ The following endpoints were previously deprecated and have been removed, if you
 - `/api/server-info/*` has been removed. Use `/api/server/*` instead.
 - `/api/people/:id/assets` has been removed. Use `/api/search/metadata` instead.
 
-> [!NOTE] 
+> [!NOTE]
 > This includes `/api/server-info/ping`, `/api/server-info/version`, `/api/server-features`, `/api/server-info/config`, `/api/server-info/statistics`, and others.
 
 ### 3. Remove deprecated `start.sh` arguments
@@ -39,7 +39,7 @@ The following docker commands have been removed:
 
 Follow the steps below to align `docker-compose.yml` with the default setup.
 
-> [!NOTE] 
+> [!NOTE]
 > These steps are only required if you still have the `immich-microservices` section in your `docker-compose.yml` or didn't follow the previous instructions to remove the command section. If you don't have the mentioned content below, you can ignore this
 
 
@@ -56,7 +56,7 @@ services:
     :
 -   command: [ "start.sh", "immich" ]
     ...
-    
+
 -  immich-microservices:
 -    container_name: immich_microservices
 -    ...
@@ -92,7 +92,7 @@ Photos and albums are the two most used pages. To make them more accessible, we 
 
 #### Albums page
 
-This new page allows users to quickly view, sort, search, filter, create, and manage albums. 
+This new page allows users to quickly view, sort, search, filter, create, and manage albums.
 
 <img width="350" alt="image" src="https://github.com/user-attachments/assets/d5782994-f0f8-481f-b89e-c12b498b90b3">
 
@@ -156,7 +156,7 @@ It is now possible for a single instance of the machine learning service to use 
 ## Support Immich
 
 <p align="center">
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjY2eWc5Y2F0ZW56MmR4aWE0dDhzZXlidXRmYWZyajl1bWZidXZpcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/87CKDqErVfMqY/giphy.gif" width="450" title="SUPPORT THE PROJECT!"> 
+<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjY2eWc5Y2F0ZW56MmR4aWE0dDhzZXlidXRmYWZyajl1bWZidXZpcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/87CKDqErVfMqY/giphy.gif" width="450" title="SUPPORT THE PROJECT!">
 </p>
 
 
