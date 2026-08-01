@@ -66,32 +66,40 @@ if __name__ == "__main__":
         pre_path = DATA_DIR / f"{case_name}.pre"
         quote_path = DATA_DIR / f"{case_name}.quote"
 
-        with orig_path.open( "w", encoding="utf-8", newline="") as f:
+        with orig_path.open("w", encoding="utf-8", newline="") as f:
             f.write(release.body)
 
         empty_repo = DummyRepo()
         empty_release = DummyRelease(release.body)
-        with md_path.open( "w", encoding="utf-8", newline="") as f:
+        with md_path.open("w", encoding="utf-8", newline="") as f:
             message, parse_mode, entities = format_release_message(
                 # pyrefly: ignore [bad-argument-type]
-                None, empty_repo, empty_release
+                None,
+                empty_repo,
+                empty_release,
             )
             f.write(message)
-        with html_path.open( "w", encoding="utf-8", newline="") as f:
+        with html_path.open("w", encoding="utf-8", newline="") as f:
             message, parse_mode, entities = format_release_message(
                 # pyrefly: ignore [bad-argument-type]
-                "html", empty_repo, empty_release
+                "html",
+                empty_repo,
+                empty_release,
             )
             f.write(message)
-        with pre_path.open( "w", encoding="utf-8", newline="") as f:
+        with pre_path.open("w", encoding="utf-8", newline="") as f:
             message, parse_mode, entities = format_release_message(
                 # pyrefly: ignore [bad-argument-type]
-                "pre", empty_repo, empty_release
+                "pre",
+                empty_repo,
+                empty_release,
             )
             f.write(message)
-        with quote_path.open( "w", encoding="utf-8", newline="") as f:
+        with quote_path.open("w", encoding="utf-8", newline="") as f:
             message, parse_mode, entities = format_release_message(
                 # pyrefly: ignore [bad-argument-type]
-                "quote", empty_repo, empty_release
+                "quote",
+                empty_repo,
+                empty_release,
             )
             f.write(message)

@@ -32,7 +32,9 @@ async def _notify_user(
         await session.commit()
 
 
-async def fetch_repo(repo_obj: Repo, session: AsyncSession, bot: Bot) -> Repository | None:
+async def fetch_repo(
+    repo_obj: Repo, session: AsyncSession, bot: Bot
+) -> Repository | None:
     try:
         logger.info("Poll GitHub repo %s", repo_obj.full_name)
         return github_obj.get_repo(repo_obj.id)
@@ -88,7 +90,9 @@ async def poll_github(bot: Bot):
                 repo_obj.archived = repo.archived
                 await session.commit()
 
-            release_or_tag, prerelease = await store_latest_release(session, repo, repo_obj)
+            release_or_tag, prerelease = await store_latest_release(
+                session, repo, repo_obj
+            )
             if isinstance(release_or_tag, GitRelease):
                 release = release_or_tag
                 logger.info("Process new release %s", release.name)

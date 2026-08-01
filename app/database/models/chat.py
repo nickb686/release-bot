@@ -16,12 +16,14 @@ class Chat(Base):
     __tablename__ = "chat"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    lang: Mapped[str] = mapped_column(String(2), default='en')
+    lang: Mapped[str] = mapped_column(String(2), default="en")
     github_username: Mapped[str | None] = mapped_column(String)
     release_note_format: Mapped[str | None] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     repos: Mapped[list[Repo]] = relationship(
-        secondary='chat_repo',
-        back_populates='chats',
+        secondary="chat_repo",
+        back_populates="chats",
     )

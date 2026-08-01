@@ -364,7 +364,10 @@ async def add_repo(
 
 
 async def add_starred_repos(
-    chat_id: int, github_user: NamedUser | AuthenticatedUser, bot: Bot, session: AsyncSession
+    chat_id: int,
+    github_user: NamedUser | AuthenticatedUser,
+    bot: Bot,
+    session: AsyncSession,
 ) -> None:
     repos = github_user.get_starred()
     for repo in repos:
@@ -379,7 +382,9 @@ async def cancel_btn(query: CallbackQuery):
 
 
 @router.callback_query(UserSubAction.filter(F.action == "unsubscribe"))
-async def unsubscribe_btn(query: CallbackQuery, session: AsyncSession, chat_id: int) -> None:
+async def unsubscribe_btn(
+    query: CallbackQuery, session: AsyncSession, chat_id: int
+) -> None:
     await query.answer()
     chat = await get_or_create_chat(session, chat_id)
     github_username = chat.github_username
@@ -723,7 +728,9 @@ async def stats_command(message: Message, session: AsyncSession) -> None:
     release_count = await session.scalar(select(func.count()).select_from(Release))
     repo_count = await session.scalar(select(func.count()).select_from(Repo))
     user_count = await session.scalar(select(func.count()).select_from(Chat))
-    subscription_count = await session.scalar(select(func.count()).select_from(ChatRepo))
+    subscription_count = await session.scalar(
+        select(func.count()).select_from(ChatRepo)
+    )
 
     text = (
         f"I have to update {release_count} releases for {repo_count} repos via {subscription_count} "

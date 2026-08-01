@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 basedir = Path(__file__).resolve().parent
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -21,6 +21,8 @@ class Release(Base):
     release_date: Mapped[datetime | None] = mapped_column(DateTime)
     link: Mapped[str | None] = mapped_column(String)
     pre_release: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     repo_id: Mapped[int | None] = mapped_column(ForeignKey("repo.id"))
     repos: Mapped[Repo | None] = relationship("Repo", back_populates="releases")
