@@ -9,7 +9,7 @@ from app.repo_engine import format_release_message
 FORMATTING_PARAMS = {
     "quote": {"format": "quote", "mode": ParseMode.HTML, "ext": "quote"},
     "pre": {"format": "pre", "mode": ParseMode.HTML, "ext": "pre"},
-    "html": {"format": "html", "mode": ParseMode.MARKDOWN_V2, "ext": "html"},
+    "html": {"format": "html", "mode": None, "ext": "html"},
     "markdown": {"format": None, "mode": ParseMode.MARKDOWN_V2, "ext": "md"},
 }
 
