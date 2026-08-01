@@ -928,7 +928,7 @@ async def download_file(
         await message.answer("I don't know this file format.")
 
 
-@router.message(Command())
+@router.message(F.text.startswith("/"))
 async def unknown_command(message: Message, bot: Bot) -> None:
     if message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
         text = cast(str, message.text).lower()

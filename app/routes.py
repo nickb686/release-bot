@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/")
 async def index(request: Request):
-    telegram_bot = request.app.state.telegram_bot
+    telegram_bot = request.app.state.bot
     bot_me = await telegram_bot.get_me()
     return (
         f'<a href="https://t.me/{bot_me.username}">{bot_me.first_name}</a> - a telegram bot for GitHub releases v{__version__}.'
