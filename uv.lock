@@ -959,7 +959,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "prek", specifier = ">=0.4.11" },
+    { name = "prek", specifier = "==0.4.11" },
     { name = "pyrefly", specifier = "==1.1.1" },
     { name = "pytest", specifier = "==9.0.3" },
     { name = "ruff", specifier = "==0.15.22" },
