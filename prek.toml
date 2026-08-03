@@ -1,0 +1,61 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace" },
+  { id = "fix-byte-order-marker" },
+  { id = "end-of-file-fixer" },
+  {
+    id = "mixed-line-ending",
+    args = ["--fix=lf"]
+  },
+  { id = "check-added-large-files" },
+  { id = "check-case-conflict" },
+  { id = "check-illegal-windows-names" },
+  { id = "check-executables-have-shebangs" },
+  { id = "check-vcs-permalinks" },
+  { id = "check-merge-conflict" },
+  { id = "check-yaml" },
+  { id = "check-toml" },
+  { id = "check-json" },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.22"
+hooks = [
+  {
+    id = "ruff-check",
+    args = ["--fix"]
+  },
+  { id = "ruff-format" }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/uv-pre-commit"
+rev = "0.11.31"
+hooks = [
+  { id = "uv-lock" }
+]
+
+[[repos]]
+repo = "https://github.com/gitleaks/gitleaks"
+rev = "v8.24.2"
+hooks = [
+  { id = "gitleaks" }
+]
+
+[[repos]]
+repo = "https://github.com/facebook/pyrefly-pre-commit"
+rev = "1.1.1"
+hooks = [
+  {
+    id = "pyrefly-check",
+    name = "Pyrefly (type checking)",
+    pass_filenames = false,
+    language = "system"
+  }
+]
