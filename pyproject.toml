@@ -24,6 +24,7 @@ dev = [
     "ruff==0.15.22",
     "pyrefly==1.1.1",
     "pre-commit>=4.6.1",
+    "prek>=0.4.11",
 ]
 
 [tool.ruff]
