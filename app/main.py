@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.database import SessionLocal, engine
+from app.database.models import Chat
 from app.github_obj import github_obj
 from app.routes import router
 from app.tasks import clear_db, poll_github, poll_github_user
@@ -36,6 +37,14 @@ class MainMiddleware(BaseMiddleware):
         chat_id: int = data["event_chat"].id
         if not settings.CHAT_ID or (settings.CHAT_ID and chat_id in settings.CHAT_ID):
             async with self.session_factory() as session:
+                chat = await session.get(Chat, chat_id)
+                if not chat:
+                    chat = Chat(
+                        id=chat_id,
+                    )
+                    session.add(chat)
+                    await session.commit()
+                data["chat"] = chat
                 data["session"] = session
                 data["chat_id"] = chat_id
                 await handler(event, data)
