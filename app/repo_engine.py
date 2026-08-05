@@ -297,7 +297,7 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
 
         return release, prerelease
     if tag:
-        release_obj = session.scalar(
+        release_obj = await session.scalar(
             select(Release).where(
                 Release.repo_id == repo_obj.id, Release.tag_name == tag.name
             )
