@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models import Chat, ChatRepo, Release, Repo
 
 
-def get_chat_repo(chat: Chat, repo: Repo, session: AsyncSession) -> ChatRepo:
+async def get_chat_repo(chat: Chat, repo: Repo, session: AsyncSession) -> ChatRepo:
     res = session.scalar(
         select(ChatRepo).where(
             ChatRepo.chat_id == chat.id,
@@ -18,13 +18,13 @@ def get_chat_repo(chat: Chat, repo: Repo, session: AsyncSession) -> ChatRepo:
     return res
 
 
-def get_latest_chat_release(session: AsyncSession, chat, repo) -> Release | None:
+async def get_latest_chat_release(session: AsyncSession, chat, repo) -> Release | None:
     if repo.releases:
-        chat_repo = get_chat_repo(chat, repo, session)
+        chat_repo = await get_chat_repo(chat, repo, session)
 
         if chat_repo.process_pre_releases:
             return repo.releases[-1]
-        return session.scalar(
+        return await session.scalar(
             select(Release)
             .where(
                 Release.repo_id == repo.id,
