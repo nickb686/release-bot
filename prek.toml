@@ -1,11 +1,17 @@
 # Configuration file for `prek`, a git hook framework written in Rust.
 # See https://prek.j178.dev for more information.
 #:schema https://www.schemastore.org/prek.json
+[[repos]]
+repo = "https://github.com/henryiii/validate-pyproject-schema-store"
+rev = "2026.08.05"
+hooks = [
+  { id = "validate-pyproject"}
+]
+
 
 [[repos]]
 repo = "builtin"
 hooks = [
-  { id = "trailing-whitespace" },
   { id = "fix-byte-order-marker" },
   { id = "end-of-file-fixer" },
   {
