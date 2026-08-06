@@ -27,7 +27,8 @@ class Settings(BaseSettings):
         return f"{self.SITE_URL}{self.WEBHOOK_PATH or ''}{self.WEBHOOK_SECRET or ''}"
 
     SQLALCHEMY_DATABASE_URI: str = Field(
-        default=f"sqlite+aiosqlite:///{basedir}/data/db.sqlite", alias="DATABASE_URI"
+        default=f"sqlite+aiosqlite:///{basedir}/data/db.sqlite",
+        alias="DATABASE_URI",
     )
     SQLALCHEMY_ECHO: bool = Field(alias="SQL_DEBUG", default=False)
     LOG_LEVEL: str = "INFO"

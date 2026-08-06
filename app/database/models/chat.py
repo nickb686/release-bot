@@ -20,7 +20,8 @@ class Chat(Base):
     github_username: Mapped[str | None] = mapped_column(String)
     release_note_format: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
     )
 
     repos: Mapped[list[Repo]] = relationship(

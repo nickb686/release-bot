@@ -23,13 +23,18 @@ class Repo(Base):
     archived: Mapped[bool | None] = mapped_column(Boolean)
     blocked: Mapped[bool | None] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
     )
     chats: Mapped[list[Chat]] = relationship(
-        "Chat", secondary="chat_repo", back_populates="repos"
+        "Chat",
+        secondary="chat_repo",
+        back_populates="repos",
     )
     releases: Mapped[list[Release]] = relationship(
-        "Release", back_populates="repos", cascade="all, delete-orphan"
+        "Release",
+        back_populates="repos",
+        cascade="all, delete-orphan",
     )
 
     def is_orphan(self):

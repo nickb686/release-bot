@@ -22,7 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 async def _notify_user(
-    message: str, chat: Chat, bot, session: AsyncSession, **kwargs
+    message: str,
+    chat: Chat,
+    bot,
+    session: AsyncSession,
+    **kwargs,
 ) -> None:
     try:
         await bot.send_message(chat=chat.id, text=message, **kwargs)
@@ -33,7 +37,9 @@ async def _notify_user(
 
 
 async def fetch_repo(
-    repo_obj: Repo, session: AsyncSession, bot: Bot
+    repo_obj: Repo,
+    session: AsyncSession,
+    bot: Bot,
 ) -> Repository | None:
     try:
         logger.info("Poll GitHub repo %s", repo_obj.full_name)
@@ -44,7 +50,11 @@ async def fetch_repo(
         logger.info(message)
         for chat in repo_obj.chats:
             await _notify_user(
-                message, chat, bot, session, disable_web_page_preview=True
+                message,
+                chat,
+                bot,
+                session,
+                disable_web_page_preview=True,
             )
         await session.delete(repo_obj)
         await session.commit()
@@ -55,7 +65,11 @@ async def fetch_repo(
             logger.info(message)
             for chat in repo_obj.chats:
                 await _notify_user(
-                    message, chat, bot, session, disable_web_page_preview=True
+                    message,
+                    chat,
+                    bot,
+                    session,
+                    disable_web_page_preview=True,
                 )
             repo_obj.blocked = True
             await session.commit()
@@ -91,7 +105,9 @@ async def poll_github(bot: Bot):
                 await session.commit()
 
             release_or_tag, prerelease = await store_latest_release(
-                session, repo, repo_obj
+                session,
+                repo,
+                repo_obj,
             )
             if isinstance(release_or_tag, GitRelease):
                 release = release_or_tag
@@ -99,7 +115,9 @@ async def poll_github(bot: Bot):
 
                 for chat in repo_obj.chats:
                     message, parse_mode, entities = format_release_message(
-                        chat.release_note_format, repo, release
+                        chat.release_note_format,
+                        repo,
+                        release,
                     )
                     await _notify_user(
                         message,
@@ -109,7 +127,8 @@ async def poll_github(bot: Bot):
                         parse_mode=parse_mode,
                         entities=entities,
                         link_preview_options=LinkPreviewOptions(
-                            url=repo_obj.link, prefer_small_media=True
+                            url=repo_obj.link,
+                            prefer_small_media=True,
                         ),
                     )
             elif isinstance(release_or_tag, Tag):
@@ -130,7 +149,8 @@ async def poll_github(bot: Bot):
                         session,
                         parse_mode=ParseMode.HTML,
                         link_preview_options=LinkPreviewOptions(
-                            url=repo_obj.link, prefer_small_media=True
+                            url=repo_obj.link,
+                            prefer_small_media=True,
                         ),
                     )
             if isinstance(prerelease, GitRelease):
@@ -140,7 +160,8 @@ async def poll_github(bot: Bot):
                 for chat in repo_obj.chats:
                     chat_repo = session.scalar(
                         select(ChatRepo).where(
-                            ChatRepo.chat_id == chat.id, ChatRepo.repo_id == repo_obj.id
+                            ChatRepo.chat_id == chat.id,
+                            ChatRepo.repo_id == repo_obj.id,
                         ),
                     )
                     if (
@@ -150,7 +171,9 @@ async def poll_github(bot: Bot):
                         break
 
                     message, parse_mode, entities = format_release_message(
-                        chat.release_note_format, repo, release
+                        chat.release_note_format,
+                        repo,
+                        release,
                     )
                     await _notify_user(
                         message,
@@ -159,7 +182,8 @@ async def poll_github(bot: Bot):
                         session,
                         entities=entities,
                         link_preview_options=LinkPreviewOptions(
-                            url=repo_obj.link, prefer_small_media=True
+                            url=repo_obj.link,
+                            prefer_small_media=True,
                         ),
                     )
 
@@ -195,7 +219,8 @@ async def poll_github_user(bot: Bot):
                 starred = repo in github_user.get_starred()
                 chat_repo = session.scalar(
                     select(ChatRepo).where(
-                        ChatRepo.chat_id == chat.id, ChatRepo.repo_id == repo_obj.id
+                        ChatRepo.chat_id == chat.id,
+                        ChatRepo.repo_id == repo_obj.id,
                     ),
                 )
                 if isinstance(chat_repo, ChatRepo) and chat_repo.starred != starred:

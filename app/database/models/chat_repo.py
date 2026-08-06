@@ -11,9 +11,11 @@ class ChatRepo(Base):
         primary_key=True,
     )
     repo_id: Mapped[int] = mapped_column(
-        ForeignKey("repo.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("repo.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     process_pre_releases: Mapped[bool] = mapped_column(
-        default=True, server_default=true()
+        default=True,
+        server_default=true(),
     )
     starred: Mapped[bool] = mapped_column(default=False, server_default=false())

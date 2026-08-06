@@ -142,7 +142,9 @@ def codeify_release_message(release_note_format, repo: Repository, release: GitR
 
 
 def markdownify_release_message(
-    release_note_format, repo: Repository, release: GitRelease
+    release_note_format,
+    repo: Repository,
+    release: GitRelease,
 ):
     release_body = release.body
     release_body = release_body.replace("\r\n", "\n") if release_body else ""
@@ -194,7 +196,9 @@ def markdownify_release_message(
 
 
 def format_release_message(
-    release_note_format, repo: Repository, release: GitRelease
+    release_note_format,
+    repo: Repository,
+    release: GitRelease,
 ) -> tuple[
     str,
     Literal[ParseMode.HTML, ParseMode.MARKDOWN_V2] | None,
@@ -206,7 +210,9 @@ def format_release_message(
         entities = None
     elif release_note_format == "html":
         message, parse_mode, entities = htmlify_release_body(
-            release_note_format, repo, release
+            release_note_format,
+            repo,
+            release,
         )
     else:
         message = markdownify_release_message(release_note_format, repo, release)
@@ -248,8 +254,9 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
             release.updated = False  # pyrefly: ignore [missing-attribute]
             release_obj = await session.scalar(
                 select(Release).where(
-                    Release.repo_id == repo_obj.id, Release.release_id == release.id
-                )
+                    Release.repo_id == repo_obj.id,
+                    Release.release_id == release.id,
+                ),
             )
             if release_obj and release_obj.release_date:
                 stored_release_date = release_obj.release_date.replace(tzinfo=UTC)
@@ -279,8 +286,9 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
             prerelease.updated = False  # pyrefly: ignore [missing-attribute]
             release_obj = await session.scalar(
                 select(Release).where(
-                    Release.repo_id == repo_obj.id, Release.release_id == prerelease.id
-                )
+                    Release.repo_id == repo_obj.id,
+                    Release.release_id == prerelease.id,
+                ),
             )
             if not release_obj:
                 release_obj = Release(
@@ -299,8 +307,9 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
     if tag:
         release_obj = await session.scalar(
             select(Release).where(
-                Release.repo_id == repo_obj.id, Release.tag_name == tag.name
-            )
+                Release.repo_id == repo_obj.id,
+                Release.tag_name == tag.name,
+            ),
         )
         if not release_obj:
             release_obj = Release(

@@ -48,7 +48,9 @@ def test_format_none_or_empty_input(empty_repo, empty_release, key, body):
     empty_release.body = body
 
     message, parse_mode, _entities = format_release_message(
-        release_note_format, empty_repo, empty_release
+        release_note_format,
+        empty_repo,
+        empty_release,
     )
     assert parse_mode == FORMATTING_PARAMS[key]["mode"]
     assert message == NONE_OR_EMPTY_EXPECTED[key]
@@ -74,7 +76,9 @@ def test_format_input(empty_repo, empty_release, key, case_name):
     empty_release.body = orig_content
 
     message, parse_mode, _entities = format_release_message(
-        release_note_format, empty_repo, empty_release
+        release_note_format,
+        empty_repo,
+        empty_release,
     )
     if key == "html":
         assert parse_mode in (
