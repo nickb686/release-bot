@@ -5,17 +5,14 @@ from app.database.models import Chat, ChatRepo, Release, Repo
 
 
 async def get_chat_repo(chat: Chat, repo: Repo, session: AsyncSession) -> ChatRepo:
-    res = session.scalar(
-        select(ChatRepo).where(
-            ChatRepo.chat_id == chat.id,
-            ChatRepo.repo_id == repo.id,
+    return (
+        await session.execute(
+            select(ChatRepo).where(
+                ChatRepo.chat_id == chat.id,
+                ChatRepo.repo_id == repo.id,
+            ),
         )
-    )
-    if not isinstance(res, ChatRepo):
-        raise RuntimeError(
-            "Couldn't find ChatRepo with 'chat_id' == chat.id and 'repo_id' == repo.id"
-        )
-    return res
+    ).scalar_one()
 
 
 async def get_latest_chat_release(session: AsyncSession, chat, repo) -> Release | None:
