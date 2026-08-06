@@ -3,27 +3,27 @@ name = "release-bot"
 version = "0.1.0"
 requires-python = "==3.12.13"
 dependencies = [
-    "aiogram==3.30.0",
-    "aiosqlite==0.22.1",
-    "alembic==1.18.4",
-    "apscheduler==3.11.3",
-    "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
-    "pydantic==2.13.4",
-    "pydantic-settings==2.14.2",
-    "pygithub==2.9.0",
-    "requirements-parser==0.11.0",
-    "sqlalchemy[asyncio]==2.0.48",
-    "sulguk==0.11.0",
-    "telegramify-markdown==1.1.3",
-    "urllib3==2.6.3",
+  "aiogram==3.30.0",
+  "aiosqlite==0.22.1",
+  "alembic==1.18.4",
+  "apscheduler==3.11.3",
+  "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.14.2",
+  "pygithub==2.9.0",
+  "requirements-parser==0.11.0",
+  "sqlalchemy[asyncio]==2.0.48",
+  "sulguk==0.11.0",
+  "telegramify-markdown==1.1.3",
+  "urllib3==2.6.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==9.0.3",
-    "ruff==0.15.22",
-    "pyrefly==1.1.1",
-    "prek==0.4.11",
+  "pytest==9.0.3",
+  "ruff>=0.15.22",
+  "pyrefly>=1.1.1,<2.0.0",
+  "prek==0.4.11",
 ]
 
 [tool.ruff]
