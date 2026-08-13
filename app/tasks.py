@@ -8,8 +8,9 @@ from github import GithubException, UnknownObjectException
 from github.GitRelease import GitRelease
 from github.Repository import Repository
 from github.Tag import Tag
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import SessionLocal
 from app.database.models import Chat, Repo
@@ -23,16 +24,16 @@ logger = logging.getLogger(__name__)
 
 async def _notify_user(
     message: str,
-    chat: Chat,
+    chat_id: int,
     bot,
     session: AsyncSession,
     **kwargs,
 ) -> None:
     try:
-        await bot.send_message(chat=chat.id, text=message, **kwargs)
+        await bot.send_message(chat=chat_id, text=message, **kwargs)
     except TelegramForbiddenError:
         logger.info("Bot was blocked by the user")
-        await session.delete(chat)
+        await session.execute(delete(Chat).where(Chat.id == chat_id))
         await session.commit()
 
 
@@ -48,10 +49,10 @@ async def fetch_repo(
     except UnknownObjectException:
         message = f"GitHub repo {repo_obj.full_name} has been deleted"
         logger.info(message)
-        for chat in repo_obj.chats:
+        for chat_repo in repo_obj.chat_repos:
             await _notify_user(
                 message,
-                chat,
+                chat_repo.chat.id,
                 bot,
                 session,
                 disable_web_page_preview=True,
@@ -63,10 +64,10 @@ async def fetch_repo(
         if e.status in (403, 451):
             message = f"GitHub repo {repo_obj.full_name} has been blocked"
             logger.info(message)
-            for chat in repo_obj.chats:
+            for chat_repo in repo_obj.chat_repos:
                 await _notify_user(
                     message,
-                    chat,
+                    chat_repo.chat.id,
                     bot,
                     session,
                     disable_web_page_preview=True,
@@ -85,7 +86,11 @@ async def fetch_repo(
 
 async def poll_github(bot: Bot):
     async with SessionLocal() as session:
-        for repo_obj in await session.scalars(select(Repo)):
+        for repo_obj in await session.scalars(
+            select(Repo).options(
+                selectinload(Repo.chat_repos).joinedload(ChatRepo.chat)
+            )
+        ):
             # TODO: Filter blocked repos from SQL query
             if repo_obj.blocked or not (
                 repo := await fetch_repo(repo_obj, session, bot)
@@ -95,8 +100,10 @@ async def poll_github(bot: Bot):
             if repo.archived and not repo_obj.archived:
                 message = f"GitHub repo <b>{repo_obj.full_name}</b> has been archived"
                 logger.info(message)
-                for chat in repo_obj.chats:
-                    await _notify_user(message, chat, bot, session, url=repo_obj.link)
+                for chat_repo in repo_obj.chat_repos:
+                    await _notify_user(
+                        message, chat_repo.chat.id, bot, session, url=repo_obj.link
+                    )
                 repo_obj.archived = repo.archived
                 await session.commit()
 
@@ -113,15 +120,15 @@ async def poll_github(bot: Bot):
                 release = release_or_tag
                 logger.info("Process new release %s", release.name)
 
-                for chat in repo_obj.chats:
+                for chat_repo in repo_obj.chat_repos:
                     message, parse_mode, entities = format_release_message(
-                        chat.release_note_format,
+                        chat_repo.chat.release_note_format,
                         repo,
                         release,
                     )
                     await _notify_user(
                         message,
-                        chat,
+                        chat_repo.chat.id,
                         bot,
                         session,
                         parse_mode=parse_mode,
@@ -141,10 +148,10 @@ async def poll_github(bot: Bot):
                     f"<code>{tag.name}</code>"
                 )
 
-                for chat in repo_obj.chats:
+                for chat_repo in repo_obj.chat_repos:
                     await _notify_user(
                         message,
-                        chat,
+                        chat_repo.chat.id,
                         bot,
                         session,
                         parse_mode=ParseMode.HTML,
@@ -157,13 +164,7 @@ async def poll_github(bot: Bot):
                 release = prerelease
                 logger.info("Process new prerelease %s", release.name)
 
-                for chat in repo_obj.chats:
-                    chat_repo = session.scalar(
-                        select(ChatRepo).where(
-                            ChatRepo.chat_id == chat.id,
-                            ChatRepo.repo_id == repo_obj.id,
-                        ),
-                    )
+                for chat_repo in repo_obj.chat_repos:
                     if (
                         isinstance(chat_repo, ChatRepo)
                         and not chat_repo.process_pre_releases
@@ -171,13 +172,13 @@ async def poll_github(bot: Bot):
                         break
 
                     message, parse_mode, entities = format_release_message(
-                        chat.release_note_format,
+                        chat_repo.chat.release_note_format,
                         repo,
                         release,
                     )
                     await _notify_user(
                         message,
-                        chat,
+                        chat_repo.chat.id,
                         bot,
                         session,
                         entities=entities,
@@ -190,7 +191,11 @@ async def poll_github(bot: Bot):
 
 async def poll_github_user(bot: Bot):
     async with SessionLocal() as session:
-        stmt = select(Chat).where(Chat.github_username.is_not(None))
+        stmt = (
+            select(Chat)
+            .options(selectinload(Chat.chat_repos).joinedload(ChatRepo.repo))
+            .where(Chat.github_username.is_not(None))
+        )
         for chat in await session.scalars(stmt):
             try:
                 github_user = github_obj.get_user(chat.github_username)  # pyrefly: ignore [bad-argument-type]
@@ -205,24 +210,20 @@ async def poll_github_user(bot: Bot):
                 await session.delete(chat)
                 await session.commit()
 
-            for repo_obj in chat.repos:
+            for chat_repo in chat.chat_repos:
                 try:
-                    repo = github_obj.get_repo(repo_obj.id)
+                    repo = github_obj.get_repo(chat_repo.repo_id)
                 except GithubException as e:
                     if e.status == 451:
-                        message = f"GitHub repo {repo_obj.full_name} has been blocked"
+                        message = (
+                            f"GitHub repo {chat_repo.repo.full_name} has been blocked"
+                        )
                         logger.info(message)
                     else:
                         raise
                     continue
 
                 starred = repo in github_user.get_starred()
-                chat_repo = session.scalar(
-                    select(ChatRepo).where(
-                        ChatRepo.chat_id == chat.id,
-                        ChatRepo.repo_id == repo_obj.id,
-                    ),
-                )
                 if isinstance(chat_repo, ChatRepo) and chat_repo.starred != starred:
                     chat_repo.starred = starred
                     await session.commit()

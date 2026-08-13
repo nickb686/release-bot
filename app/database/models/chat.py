@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.database.models import Repo
+    from app.database.models import ChatRepo
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.models.base import Base
+from app.database.models import Base
 
 
 class Chat(Base):
@@ -23,8 +23,6 @@ class Chat(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
     )
-
-    repos: Mapped[list[Repo]] = relationship(
-        secondary="chat_repo",
-        back_populates="chats",
+    chat_repos: Mapped[list[ChatRepo]] = relationship(
+        "ChatRepo", back_populates="chat", cascade="all, delete-orphan", lazy="raise"
     )

@@ -222,13 +222,13 @@ def format_release_message(
     return message, parse_mode, entities
 
 
-async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj: Repo):
+async def store_latest_release(session: AsyncSession, repo_obj: Repository, repo: Repo):
     release = None
     prerelease = None
     tag = None
 
     if settings.PROCESS_PRE_RELEASES:
-        releases = repo.get_releases()
+        releases = repo_obj.get_releases()
         with contextlib.suppress(IndexError):
             prerelease = releases[0]
 
@@ -241,13 +241,13 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
             prerelease = None
 
     try:
-        release = repo.get_latest_release()
+        release = repo_obj.get_latest_release()
         if release.draft:
             release = None
     except GithubException:
         # Repo has no releases yet
-        if repo.get_tags().totalCount > 0:
-            tag = repo.get_tags()[0]
+        if repo_obj.get_tags().totalCount > 0:
+            tag = repo_obj.get_tags()[0]
 
     if release or prerelease:
         if release:
@@ -279,7 +279,7 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
                     link=release.html_url,
                     pre_release=release.prerelease,
                 )
-                repo_obj.releases.append(release_obj)
+                repo.releases.append(release_obj)
                 await session.commit()
 
         if prerelease:
@@ -298,7 +298,7 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
                     link=prerelease.html_url,
                     pre_release=prerelease.prerelease,
                 )
-                repo_obj.releases.append(release_obj)
+                repo.releases.append(release_obj)
                 await session.commit()
             else:
                 prerelease = None
@@ -316,7 +316,7 @@ async def store_latest_release(session: AsyncSession, repo: Repository, repo_obj
                 tag_name=tag.name,
                 release_date=tag.last_modified_datetime,
             )
-            repo_obj.releases.append(release_obj)
+            repo.releases.append(release_obj)
             await session.commit()
             return tag, None
 

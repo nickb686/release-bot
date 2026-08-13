@@ -11,10 +11,12 @@ from aiogram.enums import ChatType, ParseMode
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import (
+    BotCommand,
     CallbackQuery,
     Document,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    InputRichMessage,
     LinkPreviewOptions,
     Message,
 )
@@ -23,8 +25,9 @@ from github import Github, GithubException
 from github.AuthenticatedUser import AuthenticatedUser
 from github.NamedUser import NamedUser
 from github.Repository import Repository
-from sqlalchemy import delete, exists, func, select
+from sqlalchemy import delete, exists, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app._version import __version__
 from app.database.models import Chat, ChatRepo, Release, Repo
@@ -34,6 +37,22 @@ from config import settings
 
 MAX_UPLOADED_FILE_SIZE = 1024 * 10  # 10kB
 router = Router()
+
+
+async def set_commands(bot: Bot):
+    commands = [
+        BotCommand(command="list", description="show your subscriptions"),
+        BotCommand(command="editlist", description="show and edit your subscriptions"),
+        BotCommand(
+            command="prerelease", description="unsubscribe from repo pre-releases"
+        ),
+        BotCommand(command="delete", description="unsubscribe from repo releases"),
+        BotCommand(command="starred", description="subscribe to user's starred repos"),
+        BotCommand(command="settings", description="change output format"),
+        BotCommand(command="about", description="information about this bot"),
+        BotCommand(command="help", description="brief usage info"),
+    ]
+    await bot.set_my_commands(commands)
 
 
 @router.message(CommandStart())
@@ -75,18 +94,23 @@ async def help_command(message: Message):
 @router.message(Command("list"))
 async def list_command(message: Message, session: AsyncSession, chat: Chat):
     text = "Your subscriptions:\n"
-    for i, repo_obj in enumerate(chat.repos):
+    stmt = (
+        select(ChatRepo)
+        .options(selectinload(ChatRepo.repo))
+        .where(ChatRepo.chat_id == chat.id)
+    )
+    subscriptions = (await session.scalars(stmt)).all()
+    for i, chat_repo_obj in enumerate(subscriptions):
         repo_emoji = ""
-        if repo_obj.archived:
+        if chat_repo_obj.repo.archived:
             repo_emoji += " 📦"
-        if repo_obj.blocked:
+        if chat_repo_obj.repo.blocked:
             repo_emoji += " 🚫"
 
-        chat_repo = await get_chat_repo(chat, repo_obj, session)
-        if chat_repo.starred:
+        if chat_repo_obj.starred:
             repo_emoji += " ⭐"
 
-        text += f"{i + 1}. <b><a href='{repo_obj.link}'>{repo_obj.full_name}</a></b>{repo_emoji}\n"
+        text += f"{i + 1}. <b><a href='{chat_repo_obj.repo.link}'>{chat_repo_obj.repo.full_name}</a></b>{repo_emoji}\n"
 
     await message.answer(
         text,
@@ -99,16 +123,16 @@ direct_pattern = re.compile(".+/.+")
 
 
 async def is_subscribed(session: AsyncSession, chat_id: int, repo_id: int) -> bool:
-    return bool(
-        await session.scalar(
+    return (
+        await session.execute(
             select(
                 exists().where(
                     ChatRepo.chat_id == chat_id,
                     ChatRepo.repo_id == repo_id,
                 ),
             ),
-        ),
-    )
+        )
+    ).scalar_one()
 
 
 async def _resolve_repo_from_command(
@@ -142,20 +166,20 @@ async def _handle_repo_command(
     session: AsyncSession,
     bot: Bot,
     usage_hint: str,
-    action: Callable[[Chat, Repo], Awaitable[str]],
-    chat: Chat,
+    action: Callable[[int, int], Awaitable[str]],
+    chat_id: int,
 ) -> None:
     repo_obj = await _resolve_repo_from_command(message, command, session, usage_hint)
     if repo_obj is None:
         return
 
-    if not await is_subscribed(session, chat.id, repo_obj.id):
+    if not await is_subscribed(session, chat_id, repo_obj.id):
         await message.answer("Error: Repo not found.")
         return
 
-    reply_message = await action(chat, repo_obj)
+    reply_message = await action(chat_id, repo_obj.id)
     await session.flush()
-    await _notify_repo(bot, chat.id, reply_message, repo_obj.link)
+    await _notify_repo(bot, chat_id, reply_message, repo_obj.link)
 
 
 @router.message(Command("prerelease"))
@@ -166,13 +190,19 @@ async def prerelease_command(
     bot: Bot,
     chat: Chat,
 ) -> None:
-    async def toggle_prerelease(chat, repo_obj) -> str:
-        chat_repo = await get_chat_repo(chat, repo_obj, session)
+    async def toggle_prerelease(chat_id: int, repo_id: int) -> str:
+        chat_repo = (
+            await session.execute(
+                select(ChatRepo)
+                .options(selectinload(ChatRepo.repo))
+                .where(ChatRepo.chat_id == chat_id, ChatRepo.repo_id == repo_id)
+            )
+        ).scalar_one()
         chat_repo.process_pre_releases = not chat_repo.process_pre_releases
         state = (
             "subscribed to" if chat_repo.process_pre_releases else "unsubscribed from"
         )
-        return f"You are {state} repo <b>{repo_obj.full_name}</b> pre-releases."
+        return f"You are {state} repo <b>{chat_repo.repo.full_name}</b> pre-releases."
 
     await _handle_repo_command(
         message,
@@ -181,7 +211,7 @@ async def prerelease_command(
         bot,
         "Specify a GitHub repo in the following format: /prerelease owner/repo",
         toggle_prerelease,
-        chat,
+        chat.id,
     )
 
 
@@ -193,9 +223,16 @@ async def delete_command(
     bot: Bot,
     chat: Chat,
 ) -> None:
-    async def remove_repo(chat, repo_obj) -> str:
-        chat.repos.remove(repo_obj)
-        return f"Deleted repo: <b>{repo_obj.full_name}</b>"
+    async def remove_repo(chat_id: int, repo_id: int) -> str:
+        full_name = (
+            await session.execute(select(Repo.full_name).where(Repo.id == repo_id))
+        ).scalar_one()
+        await session.execute(
+            delete(ChatRepo).where(
+                ChatRepo.chat_id == chat_id, ChatRepo.repo_id == repo_id
+            )
+        )
+        return f"Deleted repo: <b>{full_name}</b>"
 
     await _handle_repo_command(
         message,
@@ -204,7 +241,7 @@ async def delete_command(
         bot,
         "Specify a GitHub repo in the following format: /delete owner/repo",
         remove_repo,
-        chat,
+        chat.id,
     )
 
 
@@ -229,41 +266,48 @@ class ReleaseFormatAction(CallbackData, prefix="rel_fmt"):
 
 
 async def get_repo_keyboard(
-    chat: Chat,
+    chat_id: int,
     curr_page: int,
     session: AsyncSession,
 ) -> InlineKeyboardMarkup | None:
     btn_per_line = 4
     lines = (100 - 3) // btn_per_line
-
-    if len(chat.repos) == 0:
+    stmt = (
+        select(ChatRepo)
+        .options(selectinload(ChatRepo.repo))
+        .where(ChatRepo.chat_id == chat_id)
+    )
+    chat_repos = (await session.scalars(stmt)).all()
+    if len(chat_repos) == 0:
         return None
 
     builder = InlineKeyboardBuilder()
-    page_repos = chat.repos[curr_page * lines : (curr_page + 1) * lines]
+    page_repos = chat_repos[curr_page * lines : (curr_page + 1) * lines]
 
-    for repo in page_repos:
-        repo_name = repo.full_name.split("/")[1]
-        latest_release = await get_latest_chat_release(session, chat, repo)
+    for chat_repo in page_repos:
+        repo_name = chat_repo.repo.full_name.split("/")[1]
+        latest_release = await get_latest_chat_release(
+            session, chat_id, chat_repo.repo.id
+        )
         if latest_release:
             repo_current_tag = latest_release.tag_name
             repo_current_tag_url = (
-                latest_release.link or f"{repo.link}/releases/tag/{repo_current_tag}"
+                latest_release.link
+                or f"{chat_repo.repo.link}/releases/tag/{repo_current_tag}"
             )
         else:
             repo_current_tag = "N/A"
-            repo_current_tag_url = f"{repo.link}/releases"
-        chat_repo = await get_chat_repo(chat, repo, session)
+            repo_current_tag_url = f"{chat_repo.repo.link}/releases"
         process_pre_releases = "✔️" if chat_repo.process_pre_releases else "❌"
         builder.row(
-            InlineKeyboardButton(text=repo_name, url=repo.link),
+            InlineKeyboardButton(text=repo_name, url=chat_repo.repo.link),
             InlineKeyboardButton(text=repo_current_tag, url=repo_current_tag_url),
             InlineKeyboardButton(
                 text=f"Pre: {process_pre_releases}️️",
                 callback_data=RepoAction(
                     action="pre",
                     page=curr_page,
-                    repo_id=repo.id,
+                    repo_id=chat_repo.repo.id,
                 ).pack(),
             ),
             InlineKeyboardButton(
@@ -271,7 +315,7 @@ async def get_repo_keyboard(
                 callback_data=RepoAction(
                     action="delete",
                     page=curr_page,
-                    repo_id=repo.id,
+                    repo_id=chat_repo.repo.id,
                 ).pack(),
             ),
         )
@@ -279,7 +323,7 @@ async def get_repo_keyboard(
     if not page_repos:
         return builder.as_markup()
 
-    has_next = len(chat.repos) > (curr_page + 1) * lines
+    has_next = len(chat_repos) > (curr_page + 1) * lines
     has_prev = curr_page > 0
 
     nav_row = []
@@ -304,7 +348,7 @@ async def get_repo_keyboard(
 
 @router.message(Command("editlist"))
 async def edit_list_command(message: Message, session: AsyncSession, chat: Chat):
-    keyboard = await get_repo_keyboard(chat, 0, session)
+    keyboard = await get_repo_keyboard(chat.id, 0, session)
     if keyboard:
         await message.answer(
             "Here's all your added repos with their releases:",
@@ -315,25 +359,26 @@ async def edit_list_command(message: Message, session: AsyncSession, chat: Chat)
 
 
 async def add_repo(
-    chat: Chat,
+    chat_id: int,
     repo: Repository,
     bot: Bot,
     session: AsyncSession,
     silent=False,
 ) -> None:
-    # pyrefly: ignore [bad-assignment]
-    repo_count: int = await session.scalar(
-        select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat.id),
-    )
+    stmt = select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat_id)
+    repo_count: int = (await session.execute(stmt)).scalar_one()
+
     if settings.MAX_REPOS_PER_CHAT and repo_count >= settings.MAX_REPOS_PER_CHAT:
         if not silent:
             await bot.send_message(
-                chat_id=chat.id,
+                chat_id=chat_id,
                 text="Maximum number of repos per user reached.",
             )
         return
 
-    repo_obj = await session.get(Repo, repo.id)
+    repo_obj = await session.scalar(
+        select(Repo).options(selectinload(Repo.releases)).where(Repo.id == repo.id)
+    )
     if not repo_obj:
         repo_obj = Repo(
             id=repo.id,
@@ -348,10 +393,10 @@ async def add_repo(
         session.add(repo_obj)
         await session.flush()
 
-    if await is_subscribed(session, chat.id, repo.id):
+    if await is_subscribed(session, chat_id, repo.id):
         if not silent:
             await bot.send_message(
-                chat_id=chat.id,
+                chat_id=chat_id,
                 text=f"GitHub repo <b>{repo.full_name}</b> has already been added.",
                 parse_mode=ParseMode.HTML,
                 link_preview_options=LinkPreviewOptions(
@@ -360,7 +405,7 @@ async def add_repo(
                 ),
             )
     else:
-        repo_obj.chats.append(chat)
+        await session.execute(insert(ChatRepo).values(chat_id=chat_id, repo_id=repo.id))
         await session.flush()
 
         if repo_obj.archived:
@@ -371,7 +416,7 @@ async def add_repo(
             text = f"Added GitHub repo: <b>{repo.full_name}</b>, but it has no releases"
 
         await bot.send_message(
-            chat_id=chat.id,
+            chat_id=chat_id,
             text=text,
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(
@@ -382,14 +427,14 @@ async def add_repo(
 
 
 async def add_starred_repos(
-    chat: Chat,
+    chat_id: int,
     github_user: NamedUser | AuthenticatedUser,
     bot: Bot,
     session: AsyncSession,
 ) -> None:
     repos = github_user.get_starred()
     for repo in repos:
-        await add_repo(chat, repo, bot, session, True)
+        await add_repo(chat_id, repo, bot, session, True)
 
 
 @router.callback_query(F.data == "cancel")
@@ -436,7 +481,7 @@ async def subscribe_btn(
         await query.message.edit_text(
             text=f"Subscribed to user {github_user.login} starred repos.",
         )
-        await add_starred_repos(chat, github_user, bot, session)
+        await add_starred_repos(chat.id, github_user, bot, session)
 
 
 @router.callback_query(UserSubAction.filter(F.action == "add_repos"))
@@ -456,7 +501,7 @@ async def add_repos_btn(
             await query.message.answer("Error: User not found.")
             return
 
-        await add_starred_repos(chat, github_user, bot, session)
+        await add_starred_repos(chat.id, github_user, bot, session)
         await query.message.delete()
 
 
@@ -526,7 +571,7 @@ async def change_page_btn(
     chat: Chat,
 ) -> None:
     await query.answer()
-    keyboard = await get_repo_keyboard(chat, callback_data.page, session)
+    keyboard = await get_repo_keyboard(chat.id, callback_data.page, session)
     if keyboard and isinstance(query.message, Message):
         await query.message.edit_reply_markup(reply_markup=keyboard)
 
@@ -546,7 +591,7 @@ async def toggle_prerelease_btn(
         return
 
     if isinstance(repo_obj, Repo):
-        chat_repo = await get_chat_repo(chat, repo_obj, session)
+        chat_repo = await get_chat_repo(chat.id, repo_obj.id, session)
         chat_repo.process_pre_releases = not chat_repo.process_pre_releases
         await session.flush()
 
@@ -560,7 +605,7 @@ async def toggle_prerelease_btn(
                 f"<b>{repo_obj.full_name}</b> pre-releases."
             )
 
-        keyboard = await get_repo_keyboard(chat, callback_data.page, session)
+        keyboard = await get_repo_keyboard(chat.id, callback_data.page, session)
         if isinstance(query.message, Message):
             await query.message.edit_reply_markup(reply_markup=keyboard)
 
@@ -600,12 +645,12 @@ async def on_delete_repo(
         reply_message = "Error: Repo not found."
         repo_url = None
 
-    keyboard = await get_repo_keyboard(chat, callback_data.page, session)
+    keyboard = await get_repo_keyboard(chat.id, callback_data.page, session)
     if isinstance(query.message, Message):
         if keyboard:
             await query.message.edit_reply_markup(reply_markup=keyboard)
         elif callback_data.page > 0:
-            keyboard = await get_repo_keyboard(chat, callback_data.page - 1, session)
+            keyboard = await get_repo_keyboard(chat.id, callback_data.page - 1, session)
             await query.message.edit_reply_markup(reply_markup=keyboard)
         else:
             await query.message.edit_text(text="You no longer have any repos.")
@@ -782,6 +827,10 @@ async def test_command(
 
     release.updated = False  # pyrefly: ignore [missing-attribute]
 
+    await bot.send_rich_message(
+        chat_id=chat.id, rich_message=InputRichMessage(markdown=release.body)
+    )
+
     text, parse_mode, entities = format_release_message(
         chat.release_note_format,
         repo,
@@ -902,7 +951,7 @@ async def message(
         print(f"GithubException for {repo_name} in message: {e}")
         return
 
-    await add_repo(chat, repo, bot, session, False)
+    await add_repo(chat.id, repo, bot, session, False)
 
 
 async def _add_repos_from_packages(
@@ -922,7 +971,7 @@ async def _add_repos_from_packages(
                 print("Github Exception in download_file", e)
                 continue
 
-            await add_repo(chat, repo, bot, session, True)
+            await add_repo(chat.id, repo, bot, session, True)
 
 
 @router.message(F.document)
