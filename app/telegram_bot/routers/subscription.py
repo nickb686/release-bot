@@ -72,7 +72,14 @@ async def _handle_repo_command(
 
     reply_message = await action(chat_id, repo_obj.id)
     await session.flush()
-    await bot.send_message(chat_id, reply_message, parse_mode=ParseMode.HTML, link_preview_options=LinkPreviewOptions(url=repo_obj.link, prefer_small_media=True))
+    await bot.send_message(
+        chat_id,
+        reply_message,
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(
+            url=repo_obj.link, prefer_small_media=True
+        ),
+    )
 
 
 async def get_chat_repo_with_repo(
