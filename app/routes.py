@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Request, Response
+from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 
 from app._version import __version__
@@ -17,7 +18,7 @@ router = APIRouter()
 async def index(request: Request):
     telegram_bot = request.app.state.bot
     bot_me = await telegram_bot.get_me()
-    return (
+    return HTMLResponse(
         f'<a href="https://t.me/{bot_me.username}">{bot_me.first_name}</a> - a telegram bot for GitHub releases v{__version__}.'
         "<br><br>"
         'Source code available at <a href="https://github.com/NIckB686/release-bot">NIckB686/release-bot</a>'
@@ -38,6 +39,12 @@ async def stats():
 async def telegram(request: Request) -> Response:
     if not settings.SITE_URL:
         return Response(status_code=HTTPStatus.NOT_IMPLEMENTED)
+    if (
+        settings.WEBHOOK_SECRET
+        and request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        != settings.WEBHOOK_SECRET
+    ):
+        return Response(status_code=HTTPStatus.FORBIDDEN)
     dp = request.app.state.dp
     update = await request.json()
     await dp.feed_update(update)
