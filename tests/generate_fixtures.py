@@ -4,7 +4,7 @@ import urllib
 from pathlib import Path
 
 from app.github_obj import github_obj
-from app.repo_engine import format_release_message
+from app.telegram_bot.format import format_release_message
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 RELEASE_URLS = (

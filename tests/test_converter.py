@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pytest
 from aiogram.enums import ParseMode
 
-from app.repo_engine import format_release_message
+from app.telegram_bot.format import format_release_message
 
 FORMATTING_PARAMS = {
     "quote": {"format": "quote", "mode": ParseMode.HTML, "ext": "quote"},

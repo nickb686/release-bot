@@ -16,8 +16,9 @@ from app.database import SessionLocal
 from app.database.models import Chat, Repo
 from app.database.models.chat_repo import ChatRepo
 from app.github_obj import github_obj
-from app.repo_engine import format_release_message, store_latest_release
+from app.repo_engine import store_latest_release
 from app.services.subscriprion_service import add_starred_repos
+from app.telegram_bot.format import format_release_message
 
 logger = logging.getLogger(__name__)
 

@@ -70,7 +70,10 @@ async def add_repo(
     stmt = select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat_id)
     repo_count: int = (await session.execute(stmt)).scalar_one()
 
-    if settings.MAX_REPOS_PER_CHAT and repo_count >= settings.MAX_REPOS_PER_CHAT:
+    if (
+        settings.service.MAX_REPOS_PER_CHAT
+        and repo_count >= settings.service.MAX_REPOS_PER_CHAT
+    ):
         if not silent:
             await bot.send_message(
                 chat_id=chat_id,
@@ -157,7 +160,10 @@ async def add_starred_repos(
     )
     new_rows = []
     for repo in repos:
-        if settings.MAX_REPOS_PER_CHAT and repo_count + 1 > settings.MAX_REPOS_PER_CHAT:
+        if (
+            settings.service.MAX_REPOS_PER_CHAT
+            and repo_count + 1 > settings.service.MAX_REPOS_PER_CHAT
+        ):
             if not silent:
                 await bot.send_message(
                     chat_id=chat_id,

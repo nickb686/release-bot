@@ -50,7 +50,7 @@ class PollingRunner(BotRunner):
 class WebhookRunner(BotRunner):
     async def start(self):
         await self.bot.set_webhook(
-            settings.webhook_url, secret_token=settings.WEBHOOK_SECRET
+            settings.telegram.webhook_url, secret_token=settings.telegram.WEBHOOK_SECRET
         )
 
     async def stop(self):

@@ -23,7 +23,7 @@ class MainMiddleware(BaseMiddleware):
         tg_chat: Tgchat | None = data.get("event_chat")
         if tg_chat is None:
             return
-        if not settings.CHAT_ID or tg_chat.id in settings.CHAT_ID:
+        if not settings.service.CHAT_ID or tg_chat.id in settings.service.CHAT_ID:
             async with self.session_factory() as session:
                 chat = await session.get(Chat, tg_chat.id)
                 if not chat:

@@ -17,8 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app._version import __version__
 from app.database.models import Chat, ChatRepo, Release, Repo
-from app.repo_engine import format_release_message
 from app.services.subscriprion_service import add_repo
+from app.telegram_bot.format import format_release_message
 
 logger = logging.getLogger(__name__)
 router = Router()

@@ -16,7 +16,7 @@ from app.telegram_bot.middlewares.main_middleware import MainMiddleware
 from config import settings
 
 logging.basicConfig(
-    level=settings.LOG_LEVEL,
+    level=settings.logging.LEVEL,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -33,9 +33,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         dp["github_obj"] = github_obj
         dp.include_router(tg_router)
         dp.update.middleware(MainMiddleware(SessionLocal))
-        bot = Bot(settings.TELEGRAM_BOT_TOKEN)
+        bot = Bot(settings.telegram.TOKEN)
         await set_commands(bot)
-        runner = WebhookRunner(dp, bot) if settings.SITE_URL else PollingRunner(dp, bot)
+        runner = (
+            WebhookRunner(dp, bot)
+            if settings.telegram.SITE_URL
+            else PollingRunner(dp, bot)
+        )
         await runner.start()
         app.state.dp = dp
         app.state.bot = bot
@@ -44,7 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             poll_github,
             trigger="interval",
             id="poll_github",
-            minutes=settings.GITHUB_POLL_INTERVAL,
+            minutes=settings.service.GITHUB_POLL_INTERVAL,
             replace_existing=True,
             kwargs={"bot": bot},
         )

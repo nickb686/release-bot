@@ -37,12 +37,12 @@ async def stats():
 
 @router.post("/telegram")
 async def telegram(request: Request) -> Response:
-    if not settings.SITE_URL:
+    if not settings.telegram.SITE_URL:
         return Response(status_code=HTTPStatus.NOT_IMPLEMENTED)
     if (
-        settings.WEBHOOK_SECRET
+        settings.telegram.WEBHOOK_SECRET
         and request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-        != settings.WEBHOOK_SECRET
+        != settings.telegram.WEBHOOK_SECRET
     ):
         return Response(status_code=HTTPStatus.FORBIDDEN)
     dp = request.app.state.dp
