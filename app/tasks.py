@@ -17,7 +17,7 @@ from app.database.models import Chat, Repo
 from app.database.models.chat_repo import ChatRepo
 from app.github_obj import github_obj
 from app.repo_engine import format_release_message, store_latest_release
-from app.telegram_bot import add_starred_repos
+from app.services.subscriprion_service import add_starred_repos
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ async def poll_github(bot: Bot):
                         isinstance(chat_repo, ChatRepo)
                         and not chat_repo.process_pre_releases
                     ):
-                        break
+                        continue
 
                     message, parse_mode, entities = format_release_message(
                         chat_repo.chat.release_note_format,
@@ -210,6 +210,7 @@ async def poll_github_user(bot: Bot):
                 await session.delete(chat)
                 await session.commit()
 
+            starred_names = {r.full_name for r in github_user.get_starred()}
             for chat_repo in chat.chat_repos:
                 try:
                     repo = github_obj.get_repo(chat_repo.repo_id)
@@ -223,15 +224,18 @@ async def poll_github_user(bot: Bot):
                         raise
                     continue
 
-                starred = repo in github_user.get_starred()
+                starred = repo.full_name in starred_names
                 if isinstance(chat_repo, ChatRepo) and chat_repo.starred != starred:
                     chat_repo.starred = starred
-                    await session.commit()
+                    await session.flush()
+        await session.commit()
 
 
 async def clear_db():
     async with SessionLocal() as session:
-        for repo_obj in await session.scalars(select(Repo)):
+        for repo_obj in await session.scalars(
+            select(Repo).options(selectinload(Repo.chat_repos))
+        ):
             #  TODO: Use sqlalchemy_utils.auto_delete_orphans
             if repo_obj.is_orphan():
                 logger.info("Delete orphaned GitHub repo %s", repo_obj.full_name)
