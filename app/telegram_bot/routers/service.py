@@ -1,10 +1,12 @@
 import json
+import logging
 import re
 import urllib.parse
+from collections.abc import Awaitable, Callable
 from typing import cast
 
+import httpx
 import requirements
-import urllib3
 from aiogram import Bot, F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandObject, CommandStart
@@ -18,66 +20,18 @@ from app.database.models import Chat, ChatRepo, Release, Repo
 from app.repo_engine import format_release_message
 from app.services.subscriprion_service import add_repo
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(F.text)
-async def message(
-    message: Message,
-    session: AsyncSession,
-    bot: Bot,
-    github_obj: Github,
-    chat: Chat,
-) -> None:
-    """Add GitHub repo"""
-    text = cast("str", message.text)
-    if message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
-        bot_name = cast("str", (await bot.get_me()).username).lower()
-        if not text.lower().startswith(f"@{bot_name}"):
-            return
-
-    if match := pypi_link_pattern.search(text):
-        repo_name = await _resolve_repo_name_from_link(
-            message,
-            match.group(1),
-            _pypi2github,
-        )
-        if repo_name is None:
-            return
-    elif match := npm_link_pattern.search(text):
-        repo_name = await _resolve_repo_name_from_link(
-            message,
-            match.group(1),
-            _npm2github,
-        )
-        if repo_name is None:
-            return
-    elif match := github_link_pattern.search(text):
-        repo_name = match.group(1)
-    elif direct_pattern.search(text):
-        repo_name = text
-    else:
-        await message.answer("Error: Invalid repo.")
-        return
-
-    try:
-        repo = github_obj.get_repo(repo_name)
-    except GithubException as e:
-        await message.answer("Sorry, I can't find that repo.")
-        print(f"GithubException for {repo_name} in message: {e}")
-        return
-
-    await add_repo(chat.id, repo, bot, session, False)
-
-
-@message(CommandStart())
+@router.message(CommandStart())
 async def start_command(message: Message):
     await message.answer(
         "Send a message containing repo for subscribing in one of the following formats: owner/repo, https://github.com/owner/repo",
     )
 
 
-@message(Command("about"))
+@router.message(Command("about"))
 async def about_command(message: Message):
     await message.answer(
         f"release-bot - a telegram bot for GitHub releases v{__version__}\n"
@@ -85,7 +39,7 @@ async def about_command(message: Message):
     )
 
 
-@message(Command("help"))
+@router.message(Command("help"))
 async def help_command(message: Message):
     await message.answer(
         "For subscribe to a new GitHub releases send a message containing owner and name of repo (owner/repo), GitHub/PyPI/npm URL or upload requirements.txt or package.json file.\n\n"
@@ -106,7 +60,7 @@ async def help_command(message: Message):
     )
 
 
-@message(F.text.startswith("/"))
+@router.message(F.text.startswith("/"))
 async def unknown_command(message: Message, bot: Bot) -> None:
     if message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
         text = cast("str", message.text).lower()
@@ -199,12 +153,14 @@ def _first_github_repo(urls: dict, keys: list[str]) -> str | None:
     return None
 
 
-def _pypi2github(project_name: str) -> tuple[int, str | None]:
-    resp = urllib3.request("GET", f"https://pypi.org/pypi/{project_name}/json")
-    if resp.status != 200:
-        return resp.status, None
+async def _pypi2github(project_name: str) -> tuple[int, str | None]:
+    resp = await httpx.AsyncClient().get(
+        url=f"https://pypi.org/pypi/{project_name}/json"
+    )
+    if resp.status_code != 200:
+        return resp.status_code, None
 
-    info = json.loads(resp.data.decode("utf-8"))["info"]
+    info = json.loads(resp.content.decode("utf-8"))["info"]
 
     if info["project_urls"]:
         repo_name = _first_github_repo(
@@ -214,30 +170,29 @@ def _pypi2github(project_name: str) -> tuple[int, str | None]:
     else:
         repo_name = _first_github_repo({"home_page": info["home_page"]}, ["home_page"])
 
-    return resp.status, repo_name
+    return resp.status_code, repo_name
 
 
-def _npm2github(package_name: str) -> tuple[int, str | None]:
+async def _npm2github(package_name: str) -> tuple[int, str | None]:
     package_name_quoted = urllib.parse.quote(package_name, safe="")
-    resp = urllib3.request(
-        "GET",
-        f"https://api.npms.io/v2/package/{package_name_quoted}",
+    resp = await httpx.AsyncClient().get(
+        f"https://api.npms.io/v2/package/{package_name_quoted}"
     )
-    if resp.status != 200:
-        return resp.status, None
+    if resp.status_code != 200:
+        return resp.status_code, None
 
-    links = json.loads(resp.data.decode("utf-8"))["collected"]["metadata"]["links"]
+    links = json.loads(resp.content.decode("utf-8"))["collected"]["metadata"]["links"]
     repo_name = _first_github_repo(links, ["repository", "homepage"])
 
-    return resp.status, repo_name
+    return resp.status_code, repo_name
 
 
 async def _resolve_repo_name_from_link(
     message: Message,
     project: str,
-    resolver,
+    resolver: Callable[[str], Awaitable[tuple[int, str | None]]],
 ) -> str | None:
-    status, repo_name = resolver(project)
+    status, repo_name = await resolver(project)
     if status != 200:
         await message.answer("Error: Invalid repo.")
         return None
@@ -256,12 +211,12 @@ async def _add_repos_from_packages(
     github_client: Github,
 ) -> None:
     for name in package_names:
-        status, repo_name = resolver(name)
+        status, repo_name = await resolver(name)
         if status == 200 and repo_name:
             try:
                 repo = github_client.get_repo(repo_name)
-            except GithubException as e:
-                print("Github Exception in download_file", e)
+            except GithubException:
+                logger.exception("Github Exception in download_file for %s", name)
                 continue
 
             await add_repo(chat.id, repo, bot, session, True)
@@ -319,3 +274,52 @@ async def download_file(
 
     else:
         await message.answer("I don't know this file format.")
+
+
+@router.message(F.text)
+async def other_message(
+    message: Message,
+    session: AsyncSession,
+    bot: Bot,
+    github_obj: Github,
+    chat: Chat,
+) -> None:
+    """Add GitHub repo"""
+    text = cast("str", message.text)
+    if message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
+        bot_name = cast("str", (await bot.get_me()).username).lower()
+        if not text.lower().startswith(f"@{bot_name}"):
+            return
+
+    if match := pypi_link_pattern.search(text):
+        repo_name = await _resolve_repo_name_from_link(
+            message,
+            match.group(1),
+            _pypi2github,
+        )
+        if repo_name is None:
+            return
+    elif match := npm_link_pattern.search(text):
+        repo_name = await _resolve_repo_name_from_link(
+            message,
+            match.group(1),
+            _npm2github,
+        )
+        if repo_name is None:
+            return
+    elif match := github_link_pattern.search(text):
+        repo_name = match.group(1)
+    elif direct_pattern.search(text):
+        repo_name = text
+    else:
+        await message.answer("Error: Invalid repo.")
+        return
+
+    try:
+        repo = github_obj.get_repo(repo_name)
+    except GithubException:
+        await message.answer("Sorry, I can't find that repo.")
+        logger.exception("GithubException for %s in message", repo_name)
+        return
+
+    await add_repo(chat.id, repo, bot, session, False)
