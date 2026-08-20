@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -33,9 +34,10 @@ github_i_html_tag_pattern = re.compile("<i>(.*?)</i>", flags=re.DOTALL)
 github_code_html_tag_pattern = re.compile("<code>(.*?)</code>", flags=re.DOTALL)
 github_a_html_tag_pattern = re.compile('<a href="(.*?)".*?>(.*?)</a>', flags=re.DOTALL)
 github_emoji_pattern = re.compile(r":[a-z0-9_-]+:")
+logger = logging.getLogger(__name__)
 
 
-def format_header(release_note_format, repo: Repository, release: GitRelease):
+def format_header(release_note_format, github_repo: Repository, release: GitRelease):
     current_tag = release.tag_name
     release_title = (
         ""
@@ -47,7 +49,7 @@ def format_header(release_note_format, repo: Repository, release: GitRelease):
 
     if release_note_format in ("quote", "pre"):
         release_header = (
-            f"<b>{repo.full_name}</b>\n"
+            f"<b>{github_repo.full_name}</b>\n"
             f"{f'<code>{release_title}</code>' if release_title else ''}"
             f" <a href='{release.html_url}'>{current_tag}</a>"
             f"{' <i>pre-release</i>' if release.prerelease else ''}"
@@ -55,7 +57,7 @@ def format_header(release_note_format, repo: Repository, release: GitRelease):
         )
     elif release_note_format == "html":
         release_header = (
-            f"**{repo.full_name}**<br>"  # GitHub don't process '\n' instead <br> here
+            f"**{github_repo.full_name}**<br>"  # GitHub don't process '\n' instead <br> here
             f"{f'`{release_title}`' if release_title else ''}"
             f" [{current_tag}]({release.html_url})"
             f"{' _pre-release_' if release.prerelease else ''}"
@@ -63,7 +65,7 @@ def format_header(release_note_format, repo: Repository, release: GitRelease):
         )
     else:
         release_header = (
-            f"**{repo.full_name}**\n"
+            f"**{github_repo.full_name}**\n"
             f"{f'`{release_title}`' if release_title else ''}"
             f" [{current_tag}]({release.html_url})"
             f"{' _pre-release_' if release.prerelease else ''}"
@@ -73,8 +75,10 @@ def format_header(release_note_format, repo: Repository, release: GitRelease):
     return release_header
 
 
-def htmlify_release_body(release_note_format, repo: Repository, release: GitRelease):
-    header = format_header(release_note_format, repo, release)
+def htmlify_release_body(
+    release_note_format, github_repo: Repository, release: GitRelease
+):
+    header = format_header(release_note_format, github_repo, release)
     release_body = release.body
     release_body = release_body.replace("\r\n", "\n") if release_body else ""
     release_body = f"{header}{release_body}"
@@ -82,11 +86,13 @@ def htmlify_release_body(release_note_format, repo: Repository, release: GitRele
     rendered_release_body = github_obj.render_markdown(release_body)
     try:
         result = transform_html(rendered_release_body)
-    except ValueError as e:
-        print(f"Exception for {repo.full_name} in htmlify_release_body: {e}")
+    except ValueError:
+        logger.exception(
+            "Exception for %s in htmlify_release_body", github_repo.full_name
+        )
         release_note_format = ""
         return (
-            markdownify_release_message(release_note_format, repo, release),
+            markdownify_release_message(release_note_format, github_repo, release),
             ParseMode.MARKDOWN_V2,
             None,
         )
@@ -118,7 +124,9 @@ def htmlify_release_body(release_note_format, repo: Repository, release: GitRele
     return result.text, None, entities
 
 
-def codeify_release_message(release_note_format, repo: Repository, release: GitRelease):
+def codeify_release_message(
+    release_note_format, github_repo: Repository, release: GitRelease
+):
     release_body = release.body
     release_body = release_body.replace("\r\n", "\n") if release_body else ""
     release_body = github_extra_html_tags_pattern.sub(
@@ -132,7 +140,7 @@ def codeify_release_message(release_note_format, repo: Repository, release: GitR
     if len(release_body) > MAX_TEXT_LENGTH - 256:
         release_body = f"{release_body[: MAX_TEXT_LENGTH - 256]}{SKIPPED_POSTFIX}"
 
-    header = format_header(release_note_format, repo, release)
+    header = format_header(release_note_format, github_repo, release)
     if release_note_format == "quote":
         message = f"{header}<blockquote>{release_body}</blockquote>"
     else:  # release_note_format == "pre":
@@ -143,7 +151,7 @@ def codeify_release_message(release_note_format, repo: Repository, release: GitR
 
 def markdownify_release_message(
     release_note_format,
-    repo: Repository,
+    github_repo: Repository,
     release: GitRelease,
 ):
     release_body = release.body
@@ -185,7 +193,7 @@ def markdownify_release_message(
         for key, value in github_emoji_map.items():
             release_body = release_body.replace(f":{key}:", value)
 
-    header = format_header(release_note_format, repo, release)
+    header = format_header(release_note_format, github_repo, release)
     release_body = f"{header}{release_body}"
     message = markdownify(release_body)
     while len(message) >= MAX_TEXT_LENGTH:
@@ -197,7 +205,7 @@ def markdownify_release_message(
 
 def format_release_message(
     release_note_format,
-    repo: Repository,
+    github_repo: Repository,
     release: GitRelease,
 ) -> tuple[
     str,
@@ -205,30 +213,32 @@ def format_release_message(
     list[MessageEntity] | None,
 ]:
     if release_note_format in ("quote", "pre"):
-        message = codeify_release_message(release_note_format, repo, release)
+        message = codeify_release_message(release_note_format, github_repo, release)
         parse_mode = ParseMode.HTML
         entities = None
     elif release_note_format == "html":
         message, parse_mode, entities = htmlify_release_body(
             release_note_format,
-            repo,
+            github_repo,
             release,
         )
     else:
-        message = markdownify_release_message(release_note_format, repo, release)
+        message = markdownify_release_message(release_note_format, github_repo, release)
         parse_mode = ParseMode.MARKDOWN_V2
         entities = None
 
     return message, parse_mode, entities
 
 
-async def store_latest_release(session: AsyncSession, repo_obj: Repository, repo: Repo):
+async def store_latest_release(
+    session: AsyncSession, github_repo: Repository, repo: Repo
+):
     release = None
     prerelease = None
     tag = None
 
     if settings.PROCESS_PRE_RELEASES:
-        releases = repo_obj.get_releases()
+        releases = github_repo.get_releases()
         with contextlib.suppress(IndexError):
             prerelease = releases[0]
 
@@ -241,20 +251,20 @@ async def store_latest_release(session: AsyncSession, repo_obj: Repository, repo
             prerelease = None
 
     try:
-        release = repo_obj.get_latest_release()
+        release = github_repo.get_latest_release()
         if release.draft:
             release = None
     except GithubException:
         # Repo has no releases yet
-        if repo_obj.get_tags().totalCount > 0:
-            tag = repo_obj.get_tags()[0]
+        if github_repo.get_tags().totalCount > 0:
+            tag = github_repo.get_tags()[0]
 
     if release or prerelease:
         if release:
             release.updated = False  # pyrefly: ignore [missing-attribute]
             release_obj = await session.scalar(
                 select(Release).where(
-                    Release.repo_id == repo_obj.id,
+                    Release.repo_id == github_repo.id,
                     Release.release_id == release.id,
                 ),
             )
@@ -286,7 +296,7 @@ async def store_latest_release(session: AsyncSession, repo_obj: Repository, repo
             prerelease.updated = False  # pyrefly: ignore [missing-attribute]
             release_obj = await session.scalar(
                 select(Release).where(
-                    Release.repo_id == repo_obj.id,
+                    Release.repo_id == github_repo.id,
                     Release.release_id == prerelease.id,
                 ),
             )
@@ -307,7 +317,7 @@ async def store_latest_release(session: AsyncSession, repo_obj: Repository, repo
     if tag:
         release_obj = await session.scalar(
             select(Release).where(
-                Release.repo_id == repo_obj.id,
+                Release.repo_id == github_repo.id,
                 Release.tag_name == tag.name,
             ),
         )
