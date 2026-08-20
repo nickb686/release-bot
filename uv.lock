@@ -153,6 +153,19 @@ wheels = [
 ]
 
 [[package]]
+name = "apscheduler-dishka"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apscheduler" },
+    { name = "dishka" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dc/1e/72bc35bcc59104fc5d8386b3a4ac00c6f226992bd4dde7be81657038e766/apscheduler_dishka-1.1.1.tar.gz", hash = "sha256:2daa1a8110a50afc1c3a59179e33225419f5e38019ca1711ef2e5b87bbe133e8", size = 15716, upload-time = "2026-08-04T10:25:54.747Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/df/262afe2d65e69f6afff19f565c41fe1afb706db8a0201f95f84c2903b474/apscheduler_dishka-1.1.1-py3-none-any.whl", hash = "sha256:0fd9ff86a1faa09b924fc87e2c1d3206411a2acb31aee8310c40a9e8bb8f6435", size = 10100, upload-time = "2026-08-04T10:25:53.683Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -949,6 +962,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "apscheduler" },
+    { name = "apscheduler-dishka" },
     { name = "dishka" },
     { name = "fastapi", extra = ["standard-no-fastapi-cloud-cli"] },
     { name = "pydantic" },
@@ -975,6 +989,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = "==0.22.1" },
     { name = "alembic", specifier = "==1.18.4" },
     { name = "apscheduler", specifier = "==3.11.3" },
+    { name = "apscheduler-dishka", specifier = "==1.1.1" },
     { name = "dishka", specifier = "==1.10.1" },
     { name = "fastapi", extras = ["standard-no-fastapi-cloud-cli"], specifier = "==0.139.2" },
     { name = "pydantic", specifier = "==2.13.4" },
