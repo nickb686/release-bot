@@ -9,7 +9,7 @@ from aiogram.types import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Chat
-from app.telegram_bot import ReleaseFormatActionCallback
+from app.telegram_bot.callbacks import ReleaseFormatActionCallback
 
 router = Router()
 
