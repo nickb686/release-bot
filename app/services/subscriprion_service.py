@@ -62,10 +62,10 @@ async def is_subscribed(session: AsyncSession, chat_id: int, repo_id: int) -> bo
 
 async def add_repo(
     chat_id: int,
-    repo: Repository,
+    github_repo: Repository,
     bot: Bot,
     session: AsyncSession,
-    silent=False,
+    silent: bool = False,
 ) -> None:
     stmt = select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat_id)
     repo_count: int = (await session.execute(stmt)).scalar_one()
@@ -79,50 +79,56 @@ async def add_repo(
         return
 
     repo_obj = await session.scalar(
-        select(Repo).options(selectinload(Repo.releases)).where(Repo.id == repo.id)
+        select(Repo)
+        .options(selectinload(Repo.releases))
+        .where(Repo.id == github_repo.id)
     )
     if not repo_obj:
         repo_obj = Repo(
-            id=repo.id,
-            full_name=repo.full_name,
-            description=repo.description,
-            link=repo.html_url,
-            archived=repo.archived,
+            id=github_repo.id,
+            full_name=github_repo.full_name,
+            description=github_repo.description,
+            link=github_repo.html_url,
+            archived=github_repo.archived,
         )
 
-        await store_latest_release(session, repo, repo_obj)
+        await store_latest_release(session, github_repo, repo_obj)
 
         session.add(repo_obj)
         await session.flush()
 
-    if await is_subscribed(session, chat_id, repo.id):
+    if await is_subscribed(session, chat_id, github_repo.id):
         if not silent:
             await bot.send_message(
                 chat_id=chat_id,
-                text=f"GitHub repo <b>{repo.full_name}</b> has already been added.",
+                text=f"GitHub repo <b>{github_repo.full_name}</b> has already been added.",
                 parse_mode=ParseMode.HTML,
                 link_preview_options=LinkPreviewOptions(
-                    url=repo.html_url,
+                    url=github_repo.html_url,
                     prefer_small_media=True,
                 ),
             )
     else:
-        await session.execute(insert(ChatRepo).values(chat_id=chat_id, repo_id=repo.id))
+        await session.execute(
+            insert(ChatRepo).values(chat_id=chat_id, repo_id=github_repo.id)
+        )
         await session.flush()
 
         if repo_obj.archived:
-            text = f"Added GitHub repo: <b>{repo.full_name}</b>, but it is archived"
+            text = (
+                f"Added GitHub repo: <b>{github_repo.full_name}</b>, but it is archived"
+            )
         elif repo_obj.get_latest_release():
-            text = f"Added GitHub repo: <b>{repo.full_name}</b>"
+            text = f"Added GitHub repo: <b>{github_repo.full_name}</b>"
         else:
-            text = f"Added GitHub repo: <b>{repo.full_name}</b>, but it has no releases"
+            text = f"Added GitHub repo: <b>{github_repo.full_name}</b>, but it has no releases"
 
         await bot.send_message(
             chat_id=chat_id,
             text=text,
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(
-                url=repo.html_url,
+                url=github_repo.html_url,
                 prefer_small_media=True,
             ),
         )
@@ -133,10 +139,50 @@ async def add_starred_repos(
     github_user: NamedUser | AuthenticatedUser,
     bot: Bot,
     session: AsyncSession,
+    silent: bool = True,
 ) -> None:
     repos = github_user.get_starred()
+    stmt = select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat_id)
+    repo_count: int = (await session.execute(stmt)).scalar_one()
+    repo_ids = [r.id for r in repos]
+    existing_ids = set(
+        await session.scalars(select(Repo.id).where(Repo.id.in_(repo_ids)))
+    )
+    subscribed_ids = set(
+        await session.scalars(
+            select(ChatRepo.repo_id).where(
+                ChatRepo.chat_id == chat_id, ChatRepo.repo_id.in_(repo_ids)
+            )
+        )
+    )
+    new_rows = []
     for repo in repos:
-        await add_repo(chat_id, repo, bot, session, True)
+        if settings.MAX_REPOS_PER_CHAT and repo_count + 1 > settings.MAX_REPOS_PER_CHAT:
+            if not silent:
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text="Maximum number of repos per user reached.",
+                )
+            return
+        if repo.id in subscribed_ids:
+            continue
+        if repo.id not in existing_ids:
+            repo_obj = Repo(
+                id=repo.id,
+                full_name=repo.full_name,
+                description=repo.description,
+                link=repo.html_url,
+                archived=repo.archived,
+            )
+            session.add(repo_obj)
+            await store_latest_release(session, repo, repo_obj)
+            existing_ids.add(repo.id)
+        new_rows.append({"chat_id": chat_id, "repo_id": repo.id})
+        repo_count += 1
+    if new_rows:
+        await session.execute(insert(ChatRepo), new_rows)
+        await session.flush()
+    await session.commit()
 
 
 async def get_chat_repos_with_repo_by_chat_id(
@@ -145,5 +191,5 @@ async def get_chat_repos_with_repo_by_chat_id(
     return await session.scalars(
         select(ChatRepo)
         .options(joinedload(ChatRepo.repo))
-        .where(ChatRepo.repo_id == chat_id)
+        .where(ChatRepo.chat_id == chat_id)
     )
