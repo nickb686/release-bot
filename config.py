@@ -49,7 +49,7 @@ class Service(BaseModel):
 class Logging(BaseModel):
     LEVEL: str = "INFO"
 
-    @field_validator("LOG_LEVEL", mode="before")
+    @field_validator("LEVEL", mode="before")
     @classmethod
     def normalize_log_level(cls, value: str) -> str:
         return value.strip().upper()
