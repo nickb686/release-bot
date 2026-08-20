@@ -1,20 +1,18 @@
-import asyncio
 import logging
-from collections.abc import AsyncGenerator, Awaitable, Callable
-from contextlib import asynccontextmanager, suppress
-from typing import Any
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-from aiogram import BaseMiddleware, Bot, Dispatcher
+from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.database import SessionLocal, engine
-from app.database.models import Chat
 from app.github_obj import github_obj
 from app.routes import router
 from app.tasks import clear_db, poll_github, poll_github_user
+from app.telegram_bot import PollingRunner, WebhookRunner
 from app.telegram_bot import router as tg_router
+from app.telegram_bot.middlewares.main_middleware import MainMiddleware
 from config import settings
 
 logging.basicConfig(
@@ -22,59 +20,6 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-class MainMiddleware(BaseMiddleware):
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
-        self.session_factory = session_factory
-
-    async def __call__(
-        self,
-        handler: Callable[[Any, dict[str, Any]], Awaitable[Any]],
-        event: Any,
-        data: dict[str, Any],
-    ) -> Any:
-        chat_id: int = data["event_chat"].id
-        if not settings.CHAT_ID or (settings.CHAT_ID and chat_id in settings.CHAT_ID):
-            async with self.session_factory() as session:
-                chat = await session.get(Chat, chat_id)
-                if not chat:
-                    chat = Chat(
-                        id=chat_id,
-                    )
-                    session.add(chat)
-                    await session.commit()
-                data["chat"] = chat
-                data["session"] = session
-                data["chat_id"] = chat_id
-                await handler(event, data)
-                await session.commit()
-
-
-class BotRunner:
-    def __init__(self, dp: Dispatcher, bot: Bot):
-        self.dp, self.bot = dp, bot
-
-    async def start(self): ...
-    async def stop(self): ...
-
-
-class PollingRunner(BotRunner):
-    async def start(self):
-        self.task = asyncio.create_task(self.dp.start_polling(self.bot))
-
-    async def stop(self):
-        self.task.cancel()
-        with suppress(asyncio.CancelledError):
-            await self.task
-
-
-class WebhookRunner(BotRunner):
-    async def start(self):
-        await self.bot.set_webhook(settings.webhook_url)
-
-    async def stop(self):
-        await self.bot.delete_webhook()
 
 
 @asynccontextmanager

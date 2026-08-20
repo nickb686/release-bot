@@ -1,9 +1,12 @@
-from aiogram import Bot, Router
+import asyncio
+from contextlib import suppress
+
+from aiogram import Bot, Dispatcher, Router
 from aiogram.types import BotCommand
 
-from .routers.service import router as service_router
-from .routers.settings import router as settings_router
-from .routers.subscription import router as subscription_router
+from config import settings
+
+from .routers import service_router, settings_router, subscription_router
 
 router = Router()
 router.include_routers(subscription_router, settings_router, service_router)
@@ -24,3 +27,31 @@ async def set_commands(bot: Bot):
         BotCommand(command="help", description="brief usage info"),
     ]
     await bot.set_my_commands(commands)
+
+
+class BotRunner:
+    def __init__(self, dp: Dispatcher, bot: Bot):
+        self.dp, self.bot = dp, bot
+
+    async def start(self): ...
+    async def stop(self): ...
+
+
+class PollingRunner(BotRunner):
+    async def start(self):
+        self.task = asyncio.create_task(self.dp.start_polling(self.bot))
+
+    async def stop(self):
+        self.task.cancel()
+        with suppress(asyncio.CancelledError):
+            await self.task
+
+
+class WebhookRunner(BotRunner):
+    async def start(self):
+        await self.bot.set_webhook(
+            settings.webhook_url, secret_token=settings.WEBHOOK_SECRET
+        )
+
+    async def stop(self):
+        await self.bot.delete_webhook()
