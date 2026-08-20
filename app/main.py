@@ -10,7 +10,7 @@ from app.database import SessionLocal, engine
 from app.github_obj import github_obj
 from app.routes import router
 from app.tasks import clear_db, poll_github, poll_github_user
-from app.telegram_bot import PollingRunner, WebhookRunner
+from app.telegram_bot import PollingRunner, WebhookRunner, set_commands
 from app.telegram_bot import router as tg_router
 from app.telegram_bot.middlewares.main_middleware import MainMiddleware
 from config import settings
@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         dp.include_router(tg_router)
         dp.update.middleware(MainMiddleware(SessionLocal))
         bot = Bot(settings.TELEGRAM_BOT_TOKEN)
+        await set_commands(bot)
         runner = WebhookRunner(dp, bot) if settings.SITE_URL else PollingRunner(dp, bot)
         await runner.start()
         app.state.dp = dp
