@@ -6,6 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+from dishka.integrations.aiogram import FromDishka
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Chat
@@ -64,7 +65,7 @@ _FORMAT_VALUES: dict[str, str | None] = {
 async def release_format_btn(
     query: CallbackQuery,
     callback_data: ReleaseFormatActionCallback,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     chat: Chat,
 ) -> None:
     await query.answer()

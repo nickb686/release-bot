@@ -11,6 +11,7 @@ from aiogram.types import (
     LinkPreviewOptions,
     Message,
 )
+from dishka.integrations.aiogram import FromDishka
 from github import Github, GithubException
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +32,7 @@ from app.telegram_bot.callbacks import (
     UserSubActionEnum,
 )
 from app.telegram_bot.keyboards import get_repo_keyboard
+from config import Settings
 
 router = Router()
 
@@ -98,7 +100,7 @@ async def get_chat_repo_with_repo(
 async def prerelease_command(
     message: Message,
     command: CommandObject,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     bot: Bot,
     chat: Chat,
 ) -> None:
@@ -125,7 +127,7 @@ async def prerelease_command(
 async def delete_command(
     message: Message,
     command: CommandObject,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     bot: Bot,
     chat: Chat,
 ) -> None:
@@ -157,8 +159,9 @@ async def delete_command(
 async def subscribe_btn(
     query: CallbackQuery,
     callback_data: UserSubActionCallback,
-    session: AsyncSession,
-    github_client: Github,
+    session: FromDishka[AsyncSession],
+    github_client: FromDishka[Github],
+    settings: FromDishka[Settings],
     bot: Bot,
     chat: Chat,
 ):
@@ -176,7 +179,7 @@ async def subscribe_btn(
         await query.message.edit_text(
             text=f"Subscribed to user {github_user.login} starred repos.",
         )
-        await add_starred_repos(chat.id, github_user, bot, session)
+        await add_starred_repos(chat.id, github_user, bot, session, settings)
 
 
 @router.callback_query(
@@ -185,8 +188,9 @@ async def subscribe_btn(
 async def add_repos_btn(
     query: CallbackQuery,
     callback_data: UserSubActionCallback,
-    session: AsyncSession,
-    github_client: Github,
+    session: FromDishka[AsyncSession],
+    github_client: FromDishka[Github],
+    settings: FromDishka[Settings],
     chat: Chat,
     bot: Bot,
 ) -> None:
@@ -198,12 +202,12 @@ async def add_repos_btn(
             await query.message.answer("Error: User not found.")
             return
 
-        await add_starred_repos(chat.id, github_user, bot, session)
+        await add_starred_repos(chat.id, github_user, bot, session, settings)
         await query.message.delete()
 
 
 @router.message(Command("list"))
-async def list_command(message: Message, session: AsyncSession, chat: Chat):
+async def list_command(message: Message, session: FromDishka[AsyncSession], chat: Chat):
     text = "Your subscriptions:\n"
     subscriptions = await get_chat_repos_with_repo_by_chat_id(session, chat.id)
     for i, chat_repo_obj in enumerate(subscriptions):
@@ -226,7 +230,9 @@ async def list_command(message: Message, session: AsyncSession, chat: Chat):
 
 
 @router.message(Command("edit_list"))
-async def edit_list_command(message: Message, session: AsyncSession, chat: Chat):
+async def edit_list_command(
+    message: Message, session: FromDishka[AsyncSession], chat: Chat
+):
     keyboard = await get_repo_keyboard(chat.id, 0, session)
     if keyboard:
         await message.answer(
@@ -249,7 +255,7 @@ async def cancel_btn(query: CallbackQuery):
 )
 async def unsubscribe_btn(
     query: CallbackQuery,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     chat: Chat,
 ) -> None:
     await query.answer()
@@ -264,7 +270,7 @@ async def unsubscribe_btn(
 async def change_page_btn(
     query: CallbackQuery,
     callback_data: PageActionCallback,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     chat: Chat,
 ) -> None:
     await query.answer()
@@ -277,7 +283,7 @@ async def change_page_btn(
 async def toggle_prerelease_btn(
     query: CallbackQuery,
     callback_data: RepoActionCallback,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     chat: Chat,
     bot: Bot,
 ) -> None:
@@ -321,7 +327,7 @@ async def toggle_prerelease_btn(
 async def on_delete_repo(
     query: CallbackQuery,
     callback_data: RepoActionCallback,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     chat: Chat,
     bot: Bot,
 ) -> None:
@@ -368,7 +374,7 @@ async def on_delete_repo(
 async def starred_command(
     message: Message,
     command: CommandObject,
-    github_client: Github,
+    github_client: FromDishka[Github],
     chat: Chat,
 ) -> None:
     if chat.github_username:

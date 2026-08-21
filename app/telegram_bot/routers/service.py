@@ -11,6 +11,7 @@ from aiogram import Bot, F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import Document, InputRichMessage, LinkPreviewOptions, Message
+from dishka.integrations.aiogram import FromDishka
 from github import Github, GithubException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,7 @@ from app._version import __version__
 from app.database.models import Chat, ChatRepo, Release, Repo
 from app.services.subscriprion_service import add_repo
 from app.telegram_bot.format import format_release_message
+from config import Settings
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -82,7 +84,7 @@ npm_link_pattern = re.compile("https://www.npmjs.com/package/(.+)")
 
 
 @router.message(Command("stats"))
-async def stats_command(message: Message, session: AsyncSession) -> None:
+async def stats_command(message: Message, session: FromDishka[AsyncSession]) -> None:
     """Send a message when the command /stats is issued."""
     release_count = await session.scalar(select(func.count()).select_from(Release))
     repo_count = await session.scalar(select(func.count()).select_from(Repo))
@@ -104,7 +106,7 @@ async def test_command(
     message: Message,
     command: CommandObject,
     chat: Chat,
-    github_obj: Github,
+    github_obj: FromDishka[Github],
     bot: Bot,
 ) -> None:
     """Send a message when the command /test is issued."""
@@ -128,9 +130,7 @@ async def test_command(
     )
 
     text, parse_mode, entities = format_release_message(
-        chat.release_note_format,
-        repo,
-        release,
+        chat.release_note_format, repo, release, github_obj
     )
 
     await bot.send_message(
@@ -207,8 +207,9 @@ async def _add_repos_from_packages(
     package_names,
     resolver,
     bot: Bot,
-    session: AsyncSession,
-    github_client: Github,
+    session: FromDishka[AsyncSession],
+    github_client: FromDishka[Github],
+    settings: FromDishka[Settings],
 ) -> None:
     for name in package_names:
         status, repo_name = await resolver(name)
@@ -219,16 +220,17 @@ async def _add_repos_from_packages(
                 logger.exception("Github Exception in download_file for %s", name)
                 continue
 
-            await add_repo(chat.id, repo, bot, session, True)
+            await add_repo(chat.id, repo, bot, session, settings, True)
 
 
 @router.message(F.document)
 async def download_file(
     message: Message,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     bot: Bot,
-    github_client: Github,
+    github_client: FromDishka[Github],
     chat: Chat,
+    settings: FromDishka[Settings],
 ) -> None:
     """Add GitHub repo from uploaded requirements.txt"""
     document = cast("Document", message.document)
@@ -246,12 +248,7 @@ async def download_file(
 
         package_names = [req.name for req in requirements.parse(decoded_string)]
         await _add_repos_from_packages(
-            chat,
-            package_names,
-            _pypi2github,
-            bot,
-            session,
-            github_client,
+            chat, package_names, _pypi2github, bot, session, github_client, settings
         )
 
     elif document.file_name == "package.json":
@@ -264,12 +261,7 @@ async def download_file(
 
         package_names = json_data.get("dependencies", {}).keys()
         await _add_repos_from_packages(
-            chat,
-            package_names,
-            _npm2github,
-            bot,
-            session,
-            github_client,
+            chat, package_names, _npm2github, bot, session, github_client, settings
         )
 
     else:
@@ -279,10 +271,11 @@ async def download_file(
 @router.message(F.text)
 async def other_message(
     message: Message,
-    session: AsyncSession,
+    session: FromDishka[AsyncSession],
     bot: Bot,
-    github_obj: Github,
+    github_obj: FromDishka[Github],
     chat: Chat,
+    settings: FromDishka[Settings],
 ) -> None:
     """Add GitHub repo"""
     text = cast("str", message.text)
@@ -322,4 +315,4 @@ async def other_message(
         logger.exception("GithubException for %s in message", repo_name)
         return
 
-    await add_repo(chat.id, repo, bot, session, False)
+    await add_repo(chat.id, repo, bot, session, settings, False)
