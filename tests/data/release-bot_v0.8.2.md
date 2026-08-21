@@ -1,5 +1,0 @@
-————————
-
-⦁ Fix adding blocked repo from user starred repos
-⦁ Fix publishing releases
-⦁ Update dependencies
