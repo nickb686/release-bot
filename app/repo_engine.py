@@ -8,17 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Repo
 from app.database.models.release import Release
-from config import settings
 
 
 async def store_latest_release(
-    session: AsyncSession, github_repo: Repository, repo: Repo
+    session: AsyncSession,
+    github_repo: Repository,
+    repo: Repo,
+    process_pre_release: bool,
 ):
     release = None
     prerelease = None
     tag = None
 
-    if settings.service.PROCESS_PRE_RELEASES:
+    if process_pre_release:
         releases = github_repo.get_releases()
         with contextlib.suppress(IndexError):
             prerelease = releases[0]

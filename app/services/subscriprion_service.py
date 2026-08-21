@@ -10,7 +10,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.database.models import ChatRepo, Release, Repo
 from app.repo_engine import store_latest_release
-from config import settings
+from config import Settings
 
 
 async def get_chat_repo(chat_id: int, repo_id: int, session: AsyncSession) -> ChatRepo:
@@ -65,6 +65,7 @@ async def add_repo(
     github_repo: Repository,
     bot: Bot,
     session: AsyncSession,
+    settings: Settings,
     silent: bool = False,
 ) -> None:
     stmt = select(func.count()).select_from(ChatRepo).where(ChatRepo.chat_id == chat_id)
@@ -95,7 +96,9 @@ async def add_repo(
             archived=github_repo.archived,
         )
 
-        await store_latest_release(session, github_repo, repo_obj)
+        await store_latest_release(
+            session, github_repo, repo_obj, settings.service.PROCESS_PRE_RELEASES
+        )
 
         session.add(repo_obj)
         await session.flush()
@@ -142,6 +145,7 @@ async def add_starred_repos(
     github_user: NamedUser | AuthenticatedUser,
     bot: Bot,
     session: AsyncSession,
+    settings: Settings,
     silent: bool = True,
 ) -> None:
     repos = github_user.get_starred()
@@ -181,7 +185,9 @@ async def add_starred_repos(
                 archived=repo.archived,
             )
             session.add(repo_obj)
-            await store_latest_release(session, repo, repo_obj)
+            await store_latest_release(
+                session, repo, repo_obj, settings.service.PROCESS_PRE_RELEASES
+            )
             existing_ids.add(repo.id)
         new_rows.append({"chat_id": chat_id, "repo_id": repo.id})
         repo_count += 1
