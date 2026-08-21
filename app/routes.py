@@ -1,17 +1,18 @@
 from http import HTTPStatus
 
+from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app._version import __version__
-from app.database import SessionLocal
 from app.database.models import Repo
 from app.database.models.chat import Chat
 from app.database.models.release import Release
-from config import settings
+from config import Settings
 
-router = APIRouter()
+router = APIRouter(route_class=DishkaRoute)
 
 
 @router.get("/")
@@ -26,17 +27,16 @@ async def index(request: Request):
 
 
 @router.get("/stats")
-async def stats():
-    async with SessionLocal() as session:
-        return {
-            "users": session.scalar(select(func.count()).select_from(Chat)),
-            "repos": session.scalar(select(func.count()).select_from(Repo)),
-            "releases": session.scalar(select(func.count()).select_from(Release)),
-        }
+async def stats(session: FromDishka[AsyncSession]):
+    return {
+        "users": session.scalar(select(func.count()).select_from(Chat)),
+        "repos": session.scalar(select(func.count()).select_from(Repo)),
+        "releases": session.scalar(select(func.count()).select_from(Release)),
+    }
 
 
 @router.post("/telegram")
-async def telegram(request: Request) -> Response:
+async def telegram(request: Request, settings: FromDishka[Settings]) -> Response:
     if not settings.telegram.SITE_URL:
         return Response(status_code=HTTPStatus.NOT_IMPLEMENTED)
     if (

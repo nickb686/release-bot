@@ -4,13 +4,13 @@ from typing import Literal
 
 from aiogram.enums import ParseMode
 from aiogram.types import MessageEntity
+from github import Github
 from github.GitRelease import GitRelease
 from github.Repository import Repository
 from sulguk import transform_html
 from telegramify_markdown import markdownify
 
 from app.github_emoji import github_emoji_map
-from app.github_obj import github_obj
 
 SKIPPED_POSTFIX = "\n-=SKIPPED=-"
 MAX_TEXT_LENGTH = 4096
@@ -68,7 +68,10 @@ def format_header(release_note_format, github_repo: Repository, release: GitRele
 
 
 def htmlify_release_body(
-    release_note_format, github_repo: Repository, release: GitRelease
+    release_note_format,
+    github_repo: Repository,
+    release: GitRelease,
+    github_obj: Github,
 ):
     header = format_header(release_note_format, github_repo, release)
     release_body = release.body
@@ -199,6 +202,7 @@ def format_release_message(
     release_note_format,
     github_repo: Repository,
     release: GitRelease,
+    github_obj: Github,
 ) -> tuple[
     str,
     Literal[ParseMode.HTML, ParseMode.MARKDOWN_V2] | None,
@@ -210,9 +214,7 @@ def format_release_message(
         entities = None
     elif release_note_format == "html":
         message, parse_mode, entities = htmlify_release_body(
-            release_note_format,
-            github_repo,
-            release,
+            release_note_format, github_repo, release, github_obj
         )
     else:
         message = markdownify_release_message(release_note_format, github_repo, release)
