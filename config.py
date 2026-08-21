@@ -65,6 +65,3 @@ class Settings(BaseSettings):
     db: Database = Database()
     service: Service = Service()
     logging: Logging = Logging()
-
-
-settings = Settings()
