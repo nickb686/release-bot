@@ -31,7 +31,7 @@ class Service(BaseModel):
     MAX_REPOS_PER_CHAT: int = 0
     GITHUB_POLL_INTERVAL: int = 60
     GITHUB_TOKEN: str | None = None
-    CHAT_ID: list[int] = Field(default_factory=list)
+    CHAT_ID: list[int] | None = None
 
     @field_validator("CHAT_ID", mode="before")
     @classmethod
