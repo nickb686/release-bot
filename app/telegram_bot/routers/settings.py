@@ -10,12 +10,12 @@ from dishka.integrations.aiogram import FromDishka
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Chat
-from app.telegram_bot.callbacks import ReleaseFormatActionCallback
+from app.telegram_bot.callbacks import ReleaseFormatActionCallback, SettingsMenuCallback
 
 router = Router()
 
 
-@router.callback_query(ReleaseFormatActionCallback.filter(F.format == "menu"))
+@router.callback_query(SettingsMenuCallback.filter(F.action == "menu"))
 async def on_open_release_format_menu(query: CallbackQuery, chat: Chat) -> None:
     await query.answer()
 
@@ -42,25 +42,20 @@ async def on_open_release_format_menu(query: CallbackQuery, chat: Chat) -> None:
                     callback_data=ReleaseFormatActionCallback(format="html").pack(),
                 ),
             ],
-            [InlineKeyboardButton(text="Cancel", callback_data="cancel")],
+            [
+                InlineKeyboardButton(
+                    text="Cancel",
+                    callback_data=SettingsMenuCallback(action="cancel").pack(),
+                )
+            ],
         ],
     )
     if isinstance(query.message, Message):
         await query.message.edit_reply_markup(reply_markup=keyboard)
 
 
-_FORMAT_VALUES: dict[str, str | None] = {
-    "quote": "quote",
-    "pre": "pre",
-    "markdown": None,
-    "html": "html",
-}
-
-
 @router.callback_query(
-    ReleaseFormatActionCallback.filter(
-        F.format.in_({"quote", "pre", "markdown", "html"})
-    ),
+    ReleaseFormatActionCallback.filter(F.format()),
 )
 async def release_format_btn(
     query: CallbackQuery,
@@ -69,7 +64,7 @@ async def release_format_btn(
     chat: Chat,
 ) -> None:
     await query.answer()
-    chat.release_note_format = _FORMAT_VALUES[callback_data.format]
+    chat.release_note_format = callback_data.format
     await session.flush()
     if isinstance(query.message, Message):
         await query.message.edit_text(text="Release note format changed.")
@@ -82,13 +77,13 @@ async def settings_command(message: Message) -> None:
             [
                 InlineKeyboardButton(
                     text="Release note format",
-                    callback_data=ReleaseFormatActionCallback(format="menu").pack(),
+                    callback_data=SettingsMenuCallback(action="menu").pack(),
                 ),
             ],
             [
                 InlineKeyboardButton(
                     text="Cancel",
-                    callback_data="cancel",
+                    callback_data=SettingsMenuCallback(action="cancel").pack(),
                 ),
             ],
         ],
@@ -98,3 +93,10 @@ async def settings_command(message: Message) -> None:
         "Settings",
         reply_markup=keyboard,
     )
+
+
+@router.callback_query(SettingsMenuCallback.filter(F.action == "cancel"))
+async def cancel_btn(query: CallbackQuery):
+    await query.answer()
+    if isinstance(query.message, Message):
+        await query.message.delete()

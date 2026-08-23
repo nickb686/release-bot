@@ -11,6 +11,7 @@ from sulguk import transform_html
 from telegramify_markdown import markdownify
 
 from app.github_emoji import github_emoji_map
+from app.telegram_bot.callbacks import ReleaseFormat
 
 SKIPPED_POSTFIX = "\n-=SKIPPED=-"
 MAX_TEXT_LENGTH = 4096
@@ -29,7 +30,9 @@ github_emoji_pattern = re.compile(r":[a-z0-9_-]+:")
 logger = logging.getLogger(__name__)
 
 
-def format_header(release_note_format, github_repo: Repository, release: GitRelease):
+def format_header(
+    release_note_format: ReleaseFormat, github_repo: Repository, release: GitRelease
+):
     current_tag = release.tag_name
     release_title = (
         ""
@@ -68,7 +71,7 @@ def format_header(release_note_format, github_repo: Repository, release: GitRele
 
 
 def htmlify_release_body(
-    release_note_format,
+    release_note_format: ReleaseFormat,
     github_repo: Repository,
     release: GitRelease,
     github_obj: Github,
@@ -85,7 +88,6 @@ def htmlify_release_body(
         logger.exception(
             "Exception for %s in htmlify_release_body", github_repo.full_name
         )
-        release_note_format = ""
         return (
             markdownify_release_message(release_note_format, github_repo, release),
             ParseMode.MARKDOWN_V2,
@@ -120,7 +122,7 @@ def htmlify_release_body(
 
 
 def codeify_release_message(
-    release_note_format, github_repo: Repository, release: GitRelease
+    release_note_format: ReleaseFormat, github_repo: Repository, release: GitRelease
 ):
     release_body = release.body
     release_body = release_body.replace("\r\n", "\n") if release_body else ""
@@ -145,7 +147,7 @@ def codeify_release_message(
 
 
 def markdownify_release_message(
-    release_note_format,
+    release_note_format: ReleaseFormat,
     github_repo: Repository,
     release: GitRelease,
 ):
@@ -199,7 +201,7 @@ def markdownify_release_message(
 
 
 def format_release_message(
-    release_note_format,
+    release_note_format: ReleaseFormat | None,
     github_repo: Repository,
     release: GitRelease,
     github_obj: Github,
@@ -217,6 +219,7 @@ def format_release_message(
             release_note_format, github_repo, release, github_obj
         )
     else:
+        release_note_format = ReleaseFormat.markdown
         message = markdownify_release_message(release_note_format, github_repo, release)
         parse_mode = ParseMode.MARKDOWN_V2
         entities = None

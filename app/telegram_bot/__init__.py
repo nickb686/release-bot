@@ -1,10 +1,12 @@
 import asyncio
+from abc import ABC, abstractmethod
 from contextlib import suppress
+from typing import override
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import BotCommand
 
-from config import settings
+from config import Settings
 
 from .routers import service_router, settings_router, subscription_router
 
@@ -29,29 +31,37 @@ async def set_commands(bot: Bot):
     await bot.set_my_commands(commands)
 
 
-class BotRunner:
-    def __init__(self, dp: Dispatcher, bot: Bot):
-        self.dp, self.bot = dp, bot
+class BotRunner(ABC):
+    def __init__(self, dp: Dispatcher, bot: Bot, settings: Settings):
+        self.dp, self.bot, self.settings = dp, bot, settings
 
+    @abstractmethod
     async def start(self): ...
+    @abstractmethod
     async def stop(self): ...
 
 
 class PollingRunner(BotRunner):
+    @override
     async def start(self):
         self.task = asyncio.create_task(self.dp.start_polling(self.bot))
 
+    @override
     async def stop(self):
+        await self.dp.stop_polling()
         self.task.cancel()
         with suppress(asyncio.CancelledError):
             await self.task
 
 
 class WebhookRunner(BotRunner):
+    @override
     async def start(self):
         await self.bot.set_webhook(
-            settings.telegram.webhook_url, secret_token=settings.telegram.WEBHOOK_SECRET
+            self.settings.telegram.webhook_url,
+            secret_token=self.settings.telegram.WEBHOOK_SECRET,
         )
 
+    @override
     async def stop(self):
         await self.bot.delete_webhook()

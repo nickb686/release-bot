@@ -3,12 +3,7 @@ from typing import Literal
 
 from aiogram.filters.callback_data import CallbackData
 
-
-class ReleaseFormat(StrEnum):
-    quote = "quote"
-    pre = "pre"
-    markdown = "markdown"
-    html = "html"
+from app.enums import ReleaseFormat
 
 
 class UserSubActionEnum(StrEnum):
@@ -27,8 +22,12 @@ class RepoActionEnum(StrEnum):
     delete = "delete"
 
 
+class SettingsMenuCallback(CallbackData, prefix="settings"):
+    action: Literal["menu", "cancel"]
+
+
 class ReleaseFormatActionCallback(CallbackData, prefix="rel_fmt"):
-    format: Literal["menu", "quote", "pre", "markdown", "html"]
+    format: ReleaseFormat
 
 
 class UserSubActionCallback(CallbackData, prefix="user_sub"):

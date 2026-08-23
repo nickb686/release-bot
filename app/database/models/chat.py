@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy import Enum
+
 if TYPE_CHECKING:
     from app.database.models import ChatRepo
 from datetime import UTC, datetime
@@ -10,6 +12,7 @@ from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base
+from app.enums import ReleaseFormat
 
 
 class Chat(Base):
@@ -18,7 +21,11 @@ class Chat(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     lang: Mapped[str] = mapped_column(String(2), default="en")
     github_username: Mapped[str | None] = mapped_column(String)
-    release_note_format: Mapped[str | None] = mapped_column(String)
+    release_note_format: Mapped[ReleaseFormat] = mapped_column(
+        Enum(ReleaseFormat),
+        default=ReleaseFormat.markdown,
+        server_default=ReleaseFormat.markdown,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

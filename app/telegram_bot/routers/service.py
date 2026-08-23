@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import urllib.parse
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
 from typing import cast
 
 import httpx
@@ -145,7 +145,7 @@ async def test_command(
     )
 
 
-def _first_github_repo(urls: dict, keys: list[str]) -> str | None:
+def _first_github_repo(urls: dict[str, str], keys: list[str]) -> str | None:
     for key in keys:
         url = urls.get(key)
         if url and (match := github_link_pattern.search(url)):
@@ -204,8 +204,8 @@ async def _resolve_repo_name_from_link(
 
 async def _add_repos_from_packages(
     chat: Chat,
-    package_names,
-    resolver,
+    package_names: Iterable[str],
+    resolver: Callable[[str], Awaitable[tuple[int, str | None]]],
     bot: Bot,
     session: FromDishka[AsyncSession],
     github_client: FromDishka[Github],
@@ -246,7 +246,9 @@ async def download_file(
             return
         decoded_string = buffer.read().decode("utf-8", errors="replace")
 
-        package_names = [req.name for req in requirements.parse(decoded_string)]
+        package_names: list[str] = [
+            req.name for req in requirements.parse(decoded_string) if req.name
+        ]
         await _add_repos_from_packages(
             chat, package_names, _pypi2github, bot, session, github_client, settings
         )
@@ -309,6 +311,7 @@ async def other_message(
         return
 
     try:
+        print(repo_name)
         repo = github_obj.get_repo(repo_name)
     except GithubException:
         await message.answer("Sorry, I can't find that repo.")

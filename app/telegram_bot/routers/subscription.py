@@ -48,7 +48,7 @@ async def _resolve_repo_from_command(
     if message.reply_to_message and message.reply_to_message.link_preview_options:
         repo_url = message.reply_to_message.link_preview_options.url
         return await session.scalar(select(Repo).where(Repo.link == repo_url))
-    args = command.args.split() if command.args else []
+    args: list[str] = command.args.split() if command.args else []
     if len(args) != 1 or not direct_pattern.search(args[0]):
         await message.answer(usage_hint)
         return None
@@ -243,13 +243,6 @@ async def edit_list_command(
         await message.answer("You don't have any repos yet.")
 
 
-@router.callback_query(F.data == "cancel")
-async def cancel_btn(query: CallbackQuery):
-    await query.answer()
-    if isinstance(query.message, Message):
-        await query.message.delete()
-
-
 @router.callback_query(
     UserSubActionCallback.filter(F.action == UserSubActionEnum.unsubscribe)
 )
@@ -404,7 +397,7 @@ async def starred_command(
         )
         return
 
-    args = command.args.split() if command.args else []
+    args: list[str] = command.args.split() if command.args else []
     if len(args) != 1:
         await message.answer(
             "Specify a GitHub username in the following format: /starred username",

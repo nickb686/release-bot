@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from aiogram import Bot
 from aiogram.enums import ParseMode
@@ -26,12 +27,12 @@ logger = logging.getLogger(__name__)
 async def _notify_user(
     message: str,
     chat_id: int,
-    bot,
+    bot: Bot,
     session: AsyncSession,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     try:
-        await bot.send_message(chat=chat_id, text=message, **kwargs)
+        await bot.send_message(chat_id=chat_id, text=message, **kwargs)
     except TelegramForbiddenError:
         logger.info("Bot was blocked by the user")
         await session.execute(delete(Chat).where(Chat.id == chat_id))

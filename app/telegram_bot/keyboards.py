@@ -6,7 +6,11 @@ from app.services.subscriprion_service import (
     get_chat_repos_with_repo_by_chat_id,
     get_latest_chat_release,
 )
-from app.telegram_bot.callbacks import PageActionCallback, RepoActionCallback
+from app.telegram_bot.callbacks import (
+    PageActionCallback,
+    RepoActionCallback,
+    SettingsMenuCallback,
+)
 
 
 async def get_repo_keyboard(
@@ -75,7 +79,11 @@ async def get_repo_keyboard(
                 ).pack(),
             ),
         )
-    nav_row.append(InlineKeyboardButton(text="Cancel", callback_data="cancel"))
+    nav_row.append(
+        InlineKeyboardButton(
+            text="Cancel", callback_data=SettingsMenuCallback(action="cancel").pack()
+        )
+    )
     if has_next:
         nav_row.append(
             InlineKeyboardButton(
