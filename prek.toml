@@ -3,7 +3,7 @@
 #:schema https://www.schemastore.org/prek.json
 [[repos]]
 repo = "https://github.com/henryiii/validate-pyproject-schema-store"
-rev = "2026.08.05"
+rev = "2026.08.15"
 hooks = [
   { id = "validate-pyproject"}
 ]
@@ -31,7 +31,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.16.1"
+rev = "v0.16.4"
 hooks = [
   {
     id = "ruff-check",
@@ -42,7 +42,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/uv-pre-commit"
-rev = "0.12.2"
+rev = "0.12.5"
 hooks = [
   { id = "uv-lock" }
 ]
