@@ -77,3 +77,9 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 docstring-code-format = true
+
+[tool.pyrefly]
+project-includes = ["app"]
+project-excludes = ["**/alembic/**"]
+python-version = "3.12"
+preset = "strict"
