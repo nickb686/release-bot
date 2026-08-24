@@ -9,7 +9,7 @@ dependencies = [
   "apscheduler==3.11.3",
   "apscheduler-dishka==1.1.1",
   "dishka==1.10.1",
-  "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
+  "fastapi[standard-no-fastapi-cloud-cli]==0.141.1",
   "pydantic==2.13.4",
   "pydantic-settings==2.14.2",
   "pygithub==2.9.0",
