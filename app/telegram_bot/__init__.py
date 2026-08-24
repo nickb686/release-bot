@@ -44,12 +44,15 @@ class BotRunner(ABC):
 class PollingRunner(BotRunner):
     @override
     async def start(self):
-        self.task = asyncio.create_task(self.dp.start_polling(self.bot))
+        self.task = asyncio.create_task(
+            self.dp.start_polling(
+                self.bot, handle_signals=False, close_bot_session=False
+            )
+        )
 
     @override
     async def stop(self):
         await self.dp.stop_polling()
-        self.task.cancel()
         with suppress(asyncio.CancelledError):
             await self.task
 

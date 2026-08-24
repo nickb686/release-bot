@@ -1,4 +1,3 @@
-import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -21,8 +20,6 @@ from app.telegram_bot import BotRunner, PollingRunner, WebhookRunner, set_comman
 from app.telegram_bot import router as tg_router
 from app.telegram_bot.middlewares.main_middleware import MainMiddleware
 from config import Settings
-
-logger = logging.getLogger(__name__)
 
 
 class AppProvider(Provider):
@@ -50,7 +47,6 @@ class AppProvider(Provider):
         @event.listens_for(engine.sync_engine, "connect")
         # pyrefly: ignore [implicit-any-parameter]
         def set_sqlite_pragma(dbapi_connection, connection_record):
-            logger.debug("Set sql pragma...")
             # Look at https://kerkour.com/sqlite-for-servers
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA journal_mode=WAL")
@@ -89,9 +85,7 @@ class AppProvider(Provider):
         bot = Bot(settings.telegram.TOKEN)
         await set_commands(bot)
         yield bot
-        logger.debug("Closing bot session...")
         await bot.session.close()
-        logger.debug("Bot's session is closed")
 
     @provide(scope=Scope.APP)
     async def get_telegram_dispatcher(
@@ -114,9 +108,7 @@ class AppProvider(Provider):
         )
         await runner.start()
         yield runner
-        logger.debug("Bot is stopping...")
         await runner.stop()
-        logger.debug("Bot has stopped")
 
     @provide(scope=Scope.APP)
     async def init_scheduler(
@@ -150,7 +142,5 @@ class AppProvider(Provider):
         )
         scheduler.start()
         yield scheduler
-        logger.debug("Scheduler is stopping...")
         if scheduler.running:
             scheduler.shutdown(wait=False)
-        logger.debug("Scheduler has stopped")
