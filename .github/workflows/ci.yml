@@ -28,7 +28,7 @@ jobs:
           python-version-file: 'pyproject.toml'
 
       - name: Install dependencies
-        run: uv sync --locked --group dev
+        run: uv sync --locked --group dev && uv tool add pyrefly
 
       - name: Run lint and tests
         uses: j178/prek-action@v3.0.0
