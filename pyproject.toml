@@ -1,66 +1,85 @@
 [project]
 name = "release-bot"
 version = "0.1.0"
-requires-python = "~=3.12.0"
+requires-python = "==3.12.13"
 dependencies = [
-    "aiogram==3.30.0",
-    "aiosqlite==0.22.1",
-    "alembic==1.18.4",
-    "apscheduler==3.11.3",
-    "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
-    "pydantic==2.13.4",
-    "pydantic-settings==2.14.2",
-    "pygithub==2.9.0",
-    "requirements-parser==0.11.0",
-    "sqlalchemy[asyncio]==2.0.48",
-    "sulguk==0.11.0",
-    "telegramify-markdown==1.1.3",
-    "urllib3==2.6.3",
+  "aiogram==3.30.0",
+  "aiosqlite==0.22.1",
+  "alembic==1.18.4",
+  "apscheduler==3.11.3",
+  "apscheduler-dishka==1.1.1",
+  "dishka==1.10.1",
+  "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.14.2",
+  "pygithub==2.9.0",
+  "requirements-parser==0.11.0",
+  "sqlalchemy[asyncio]==2.0.48",
+  "sulguk==0.11.0",
+  "telegramify-markdown==1.1.3",
+  "urllib3==2.6.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==9.0.3",
-    "ruff==0.15.22",
-    "pyrefly==1.1.1",
+  "pytest==9.0.3",
+  "ruff>=0.15.22",
+  "pyrefly>=1.1.1,<2.0.0",
+  "prek==0.4.14",
 ]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+indent-width = 4
 
 [tool.ruff.lint]
-select = [
-    "E",
-    "W",
-    "F",
-    "I",
-    "UP",
-    "B",
-    "SIM",
-    "C4",
-    "RET",
-    "RUF",
-    "ASYNC",
-    "A",
-    "PIE",
-    "PT",
-    "PTH",
-    "ISC",
-    "PERF",
-    "FURB",
-    "LOG",
-    "G",
+extend-select = [
+  "S",
+  "E",
+  "W",
+  "F",
+  "I",
+  "UP",
+  "TC",
+  "FA",
+  "B",
+  "SIM",
+  "ISC",
+  "COM",
+  "C4",
+  "RET",
+  "RUF",
+  "ASYNC",
+  "A",
+  "PLC",
+  "PLE",
+  "PLW",
+  "PIE",
+  "PT",
+  "PTH",
+  "ISC",
+  "PERF",
+  "FURB",
+  "LOG",
+  "G",
 ]
-ignore = [
-    "F405",
-    "F403",
-    "E501",
-    "RUF001"
-]
+ignore = ["E501", "RUF001", "COM812"]
+fixable = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["S101"]
+"**/alembic/*" = ["F403", "F405"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 docstring-code-format = true
+
+[tool.pyrefly]
+project-includes = ["app"]
+project-excludes = ["**/alembic/**"]
+python-version = "3.12"
+preset = "strict"

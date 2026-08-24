@@ -1,20 +1,14 @@
 from pathlib import Path
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 basedir = Path(__file__).resolve().parent
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore",
-    )
 
-    TELEGRAM_BOT_TOKEN: str
-    GITHUB_TOKEN: str | None = None
+class TelegramBot(BaseModel):
+    TOKEN: str
     SITE_URL: str | None = None
-    WEBHOOK_PATH: str | None = None
     WEBHOOK_SECRET: str | None = None
 
     @computed_field
@@ -23,22 +17,21 @@ class Settings(BaseSettings):
         if self.SITE_URL is None:
             raise ValueError("SITE_URL is not configured")
 
-        return f"{self.SITE_URL}{self.WEBHOOK_PATH or ''}{self.WEBHOOK_SECRET or ''}"
+        return f"{self.SITE_URL}/telegram"
 
-    SQLALCHEMY_DATABASE_URI: str = Field(
-        default=f"sqlite+aiosqlite:///{basedir}/data/db.sqlite", alias="DATABASE_URI"
+
+class Database(BaseModel):
+    URI: str = Field(
+        default=f"sqlite+aiosqlite:///{basedir}/data/db.sqlite",
     )
-    SQLALCHEMY_ECHO: bool = Field(alias="SQL_DEBUG", default=False)
-    LOG_LEVEL: str = "INFO"
+    ECHO: bool = False
 
-    @field_validator("LOG_LEVEL", mode="before")
-    @classmethod
-    def normalize_log_level(cls, value: str) -> str:
-        return value.strip().upper()
 
+class Service(BaseModel):
     MAX_REPOS_PER_CHAT: int = 0
     GITHUB_POLL_INTERVAL: int = 60
-    CHAT_ID: list[int] = Field(default_factory=list)
+    GITHUB_TOKEN: str | None = None
+    CHAT_ID: list[int] | None = None
 
     @field_validator("CHAT_ID", mode="before")
     @classmethod
@@ -53,4 +46,22 @@ class Settings(BaseSettings):
         return bool(self.GITHUB_TOKEN)
 
 
-settings = Settings()
+class Logging(BaseModel):
+    LEVEL: str = "INFO"
+
+    @field_validator("LEVEL", mode="before")
+    @classmethod
+    def normalize_log_level(cls, value: str) -> str:
+        return value.strip().upper()
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_nested_delimiter="__",
+        env_file=[".env.tests", ".env"],
+        extra="ignore",
+    )
+    telegram: TelegramBot
+    db: Database = Database()
+    service: Service = Service()
+    logging: Logging = Logging()

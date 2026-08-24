@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.database.models import Chat, Release
+    from app.database.models import ChatRepo, Release
 
 from datetime import UTC, datetime
 
@@ -22,13 +22,22 @@ class Repo(Base):
     link: Mapped[str] = mapped_column(String)
     archived: Mapped[bool | None] = mapped_column(Boolean)
     blocked: Mapped[bool | None] = mapped_column(Boolean)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-    chats: Mapped[list[Chat]] = relationship("Chat", secondary='chat_repo', back_populates='repos')
-    releases: Mapped[list[Release]] = relationship('Release', back_populates='repos', cascade="all, delete-orphan")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+    )
+    releases: Mapped[list[Release]] = relationship(
+        "Release",
+        back_populates="repos",
+        cascade="all, delete-orphan",
+    )
+    chat_repos: Mapped[list[ChatRepo]] = relationship(
+        "ChatRepo", back_populates="repo", cascade="all, delete-orphan", lazy="raise"
+    )
 
     def is_orphan(self):
         # TODO: Use SQL COUNT instead Python len
-        return len(self.chats) == 0
+        return len(self.chat_repos) == 0
 
     def get_latest_release(self):
         return self.releases[-1] if self.releases else None
