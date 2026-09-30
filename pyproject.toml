@@ -1,36 +1,36 @@
 [project]
 name = "release-bot"
 version = "0.1.0"
-requires-python = "==3.12.13"
+requires-python = "==3.14.7"
 dependencies = [
-  "aiogram==3.30.0",
+  "aiogram==3.31.0",
   "aiosqlite==0.22.1",
-  "alembic==1.18.4",
+  "alembic==1.20.0",
   "apscheduler==3.11.3",
   "apscheduler-dishka==1.1.1",
   "dishka==1.10.1",
-  "fastapi[standard-no-fastapi-cloud-cli]==0.139.2",
-  "httpx==0.28.1",
-  "pydantic==2.13.4",
-  "pydantic-settings==2.14.2",
-  "pygithub==2.9.0",
-  "requirements-parser==0.11.0",
-  "sqlalchemy[asyncio]==2.0.48",
-  "sulguk==0.11.0",
-  "telegramify-markdown==1.1.3",
-  "urllib3==2.6.3",
+  "fastapi[standard-no-fastapi-cloud-cli]==0.142.2",
+  "pydantic==2.13.5",
+  "pydantic-settings==2.15.0",
+  "pygithub==2.10.0",
+  "requirements-parser==0.13.1",
+  "sqlalchemy[asyncio]==2.1.1",
+  "sulguk==0.12.0",
+  "telegramify-markdown==1.4.0",
+  "urllib3==2.8.0",
 ]
 
 [dependency-groups]
 dev = [
-  "pytest==9.0.3",
+  "pytest==9.1.1",
   "ruff>=0.15.22",
-  "pyrefly>=1.1.1,<2.0.0",
-  "prek==0.4.14",
+  "pyrefly==1.3.2",
+  "prek==0.5.4",
 ]
 
 [tool.ruff]
-target-version = "py312"
+extend-exclude = ["**/alembic/*"]
+target-version = "py314"
 line-length = 88
 indent-width = 4
 
@@ -71,7 +71,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["S101"]
-"**/alembic/*" = ["F403", "F405"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -82,5 +81,5 @@ docstring-code-format = true
 [tool.pyrefly]
 project-includes = ["app"]
 project-excludes = ["**/alembic/**"]
-python-version = "3.12"
+python-version = "3.14"
 preset = "strict"
