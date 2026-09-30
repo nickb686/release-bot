@@ -1,17 +1,13 @@
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from aiogram import Bot
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import LinkPreviewOptions
-from dishka import FromDishka
 from github import Github, GithubException, UnknownObjectException
 from github.GitRelease import GitRelease
-from github.Repository import Repository
 from github.Tag import Tag
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database.models import Chat, Repo
@@ -19,7 +15,14 @@ from app.database.models.chat_repo import ChatRepo
 from app.repo_engine import store_latest_release
 from app.services.subscriprion_service import add_starred_repos
 from app.telegram_bot.format import format_release_message
-from config import Settings
+
+if TYPE_CHECKING:
+    from aiogram import Bot
+    from dishka import FromDishka
+    from github.Repository import Repository
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +204,8 @@ async def poll_github_user(
     )
     for chat in await session.scalars(stmt):
         try:
-            github_user = github_obj.get_user(chat.github_username)  # pyrefly: ignore [bad-argument-type]
+            # pyrefly: ignore [no-matching-overload]
+            github_user = github_obj.get_user(chat.github_username)
         except GithubException:
             logger.error("Can't found user '%s'", chat.github_username)
             continue
