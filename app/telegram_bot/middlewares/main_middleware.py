@@ -1,9 +1,6 @@
-from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import Chat as Tgchat
-from aiogram.types import Update
 from dishka.integrations.aiogram import CONTAINER_NAME
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +8,10 @@ from app.database.models import Chat
 from config import Settings
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from aiogram.types import Chat as Tgchat
+    from aiogram.types import Update
     from dishka import AsyncContainer
 
 
