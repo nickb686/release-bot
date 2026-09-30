@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import (
@@ -6,11 +8,14 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
-from dishka.integrations.aiogram import FromDishka
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import Chat
 from app.telegram_bot.callbacks import ReleaseFormatActionCallback, SettingsMenuCallback
+
+if TYPE_CHECKING:
+    from dishka.integrations.aiogram import FromDishka
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.database.models import Chat
 
 router = Router()
 
