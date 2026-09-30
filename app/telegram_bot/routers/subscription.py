@@ -1,5 +1,5 @@
 import re
-from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
@@ -11,10 +11,8 @@ from aiogram.types import (
     LinkPreviewOptions,
     Message,
 )
-from dishka.integrations.aiogram import FromDishka
 from github import Github, GithubException
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.database.models import Chat, ChatRepo, Repo
@@ -32,7 +30,14 @@ from app.telegram_bot.callbacks import (
     UserSubActionEnum,
 )
 from app.telegram_bot.keyboards import get_repo_keyboard
-from config import Settings
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from dishka.integrations.aiogram import FromDishka
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from config import Settings
 
 router = Router()
 
