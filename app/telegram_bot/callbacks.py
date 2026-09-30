@@ -1,9 +1,10 @@
 from enum import StrEnum
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from aiogram.filters.callback_data import CallbackData
 
-from app.enums import ReleaseFormat
+if TYPE_CHECKING:
+    from app.enums import ReleaseFormat
 
 
 class UserSubActionEnum(StrEnum):
