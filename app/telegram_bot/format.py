@@ -1,17 +1,19 @@
 import logging
 import re
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from aiogram.enums import ParseMode
 from aiogram.types import MessageEntity
-from github import Github
-from github.GitRelease import GitRelease
-from github.Repository import Repository
 from sulguk import transform_html
 from telegramify_markdown import markdownify
 
 from app.github_emoji import github_emoji_map
 from app.telegram_bot.callbacks import ReleaseFormat
+
+if TYPE_CHECKING:
+    from github import Github
+    from github.GitRelease import GitRelease
+    from github.Repository import Repository
 
 SKIPPED_POSTFIX = "\n-=SKIPPED=-"
 MAX_TEXT_LENGTH = 4096
