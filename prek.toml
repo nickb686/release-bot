@@ -5,13 +5,14 @@
 repo = "https://github.com/henryiii/validate-pyproject-schema-store"
 rev = "2026.08.15"
 hooks = [
-  { id = "validate-pyproject"}
+  { id = "validate-pyproject" }
 ]
 
 
 [[repos]]
 repo = "builtin"
 hooks = [
+  { id = "no-commit-to-branch" },
   { id = "fix-byte-order-marker" },
   { id = "end-of-file-fixer" },
   {
@@ -65,3 +66,7 @@ hooks = [
     language = "system"
   }
 ]
+[update]
+cooldown_days = 7
+freeze = true
+exclude_tags = ["*-{alpha,beta,rc}*", "*.dev*"]
