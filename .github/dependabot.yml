@@ -24,6 +24,10 @@ updates:
       timezone: Asia/Tashkent
     cooldown:
       default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   - package-ecosystem: pre-commit
     directory: "/"
     schedule:
@@ -33,3 +37,7 @@ updates:
       timezone: Asia/Tashkent
     cooldown:
       default-days: 7
+    groups:
+      pre-commit:
+        patterns:
+          - "*"
