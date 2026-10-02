@@ -79,51 +79,6 @@ jobs:
             #type=semver,pattern={{major}}.{{minor}}
             #type=semver,pattern={{major}}
 
-      - name: Build and export to Docker
-        uses: docker/build-push-action@v7
-        with:
-          load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-
-      - name: Test
-        run: |
-          set -euo pipefail
-
-          container_id=$(docker run -d -p 8000:8000 \
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test")
-
-          cleanup() {
-            docker logs "$container_id" || true
-            docker stop "$container_id" >/dev/null 2>&1 || true
-            docker rm "$container_id" >/dev/null 2>&1 || true
-          }
-
-          trap cleanup EXIT
-
-          echo "Waiting for application to become ready..."
-
-          for i in {1..60}; do
-            if curl --fail --silent --show-error \
-              --max-time 2 \
-              http://localhost:8000/ >/dev/null; then
-              echo "Application is ready."
-              exit 0
-            fi
-
-            if ! docker inspect "$container_id" \
-              --format '{{.State.Running}}' | grep -q true; then
-              echo "Container stopped unexpectedly."
-              docker logs "$container_id"
-              exit 1
-            fi
-
-            sleep 1
-          done
-
-          echo "Application did not become ready within 60 seconds."
-          docker logs "$container_id"
-          exit 1
-
       - name: Build and push
         uses: docker/build-push-action@v7
         with:

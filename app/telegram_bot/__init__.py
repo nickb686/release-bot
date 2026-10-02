@@ -1,14 +1,15 @@
 import asyncio
 from abc import ABC, abstractmethod
 from contextlib import suppress
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import BotCommand
 
-from config import Settings
-
 from .routers import service_router, settings_router, subscription_router
+
+if TYPE_CHECKING:
+    from config import Settings
 
 router = Router()
 router.include_routers(subscription_router, settings_router, service_router)

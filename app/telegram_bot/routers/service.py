@@ -2,8 +2,7 @@ import json
 import logging
 import re
 import urllib.parse
-from collections.abc import Awaitable, Callable, Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import httpx
 import requirements
@@ -11,16 +10,21 @@ from aiogram import Bot, F, Router
 from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import Document, InputRichMessage, LinkPreviewOptions, Message
-from dishka.integrations.aiogram import FromDishka
 from github import Github, GithubException
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app._version import __version__
 from app.database.models import Chat, ChatRepo, Release, Repo
 from app.services.subscriprion_service import add_repo
 from app.telegram_bot.format import format_release_message
-from config import Settings
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Iterable
+
+    from dishka.integrations.aiogram import FromDishka
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from config import Settings
 
 logger = logging.getLogger(__name__)
 router = Router()

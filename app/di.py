@@ -1,5 +1,4 @@
-from collections.abc import AsyncGenerator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -21,6 +20,9 @@ from app.telegram_bot import router as tg_router
 from app.telegram_bot.middlewares.main_middleware import MainMiddleware
 from config import Settings
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
 
 class AppProvider(Provider):
     @provide(scope=Scope.APP)
@@ -37,9 +39,7 @@ class AppProvider(Provider):
         return Github(auth=auth)
 
     @provide(scope=Scope.APP)
-    async def get_db_engine(
-        self, settings: Settings
-    ) -> AsyncGenerator[AsyncEngine, None]:
+    async def get_db_engine(self, settings: Settings) -> AsyncGenerator[AsyncEngine]:
         engine = create_async_engine(
             settings.db.URI, echo=settings.db.ECHO, poolclass=StaticPool
         )
@@ -61,7 +61,7 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_db_session_factory(
         self, engine: AsyncEngine
-    ) -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
+    ) -> AsyncGenerator[async_sessionmaker[AsyncSession]]:
         factory = async_sessionmaker(
             engine,
             expire_on_commit=False,
@@ -81,7 +81,7 @@ class AppProvider(Provider):
                 raise
 
     @provide(scope=Scope.APP)
-    async def get_telegram_bot(self, settings: Settings) -> AsyncGenerator[Bot, None]:
+    async def get_telegram_bot(self, settings: Settings) -> AsyncGenerator[Bot]:
         bot = Bot(settings.telegram.TOKEN)
         await set_commands(bot)
         yield bot
@@ -90,7 +90,7 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_telegram_dispatcher(
         self, container: AsyncContainer
-    ) -> AsyncGenerator[Dispatcher, None]:
+    ) -> AsyncGenerator[Dispatcher]:
         dp = Dispatcher()
         setup_aiogram_dishka(container, dp, auto_inject=True)
         dp.include_router(tg_router)
@@ -113,7 +113,7 @@ class AppProvider(Provider):
     @provide(scope=Scope.APP)
     async def init_scheduler(
         self, container: AsyncContainer, settings: Settings
-    ) -> AsyncGenerator[AsyncIOScheduler, None]:
+    ) -> AsyncGenerator[AsyncIOScheduler]:
         scheduler = AsyncIOScheduler()
         setup_apscheduler_dishka(container, scheduler, auto_inject=True)
         scheduler.add_job(

@@ -1,6 +1,7 @@
+from typing import TYPE_CHECKING
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.subscriprion_service import (
     get_chat_repos_with_repo_by_chat_id,
@@ -11,6 +12,9 @@ from app.telegram_bot.callbacks import (
     RepoActionCallback,
     SettingsMenuCallback,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_repo_keyboard(

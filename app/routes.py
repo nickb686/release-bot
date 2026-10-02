@@ -1,16 +1,20 @@
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app._version import __version__
 from app.database.models import Repo
 from app.database.models.chat import Chat
 from app.database.models.release import Release
-from config import Settings
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from config import Settings
 
 router = APIRouter(route_class=DishkaRoute)
 

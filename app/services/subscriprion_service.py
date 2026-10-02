@@ -1,16 +1,21 @@
-from aiogram import Bot
+from typing import TYPE_CHECKING
+
 from aiogram.enums import ParseMode
 from aiogram.types import LinkPreviewOptions
-from github.AuthenticatedUser import AuthenticatedUser
-from github.NamedUser import NamedUser
-from github.Repository import Repository
 from sqlalchemy import ScalarResult, exists, func, insert, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.database.models import ChatRepo, Release, Repo
 from app.repo_engine import store_latest_release
-from config import Settings
+
+if TYPE_CHECKING:
+    from aiogram import Bot
+    from github.AuthenticatedUser import AuthenticatedUser
+    from github.NamedUser import NamedUser
+    from github.Repository import Repository
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from config import Settings
 
 
 async def get_chat_repo(chat_id: int, repo_id: int, session: AsyncSession) -> ChatRepo:

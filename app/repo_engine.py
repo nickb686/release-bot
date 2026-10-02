@@ -1,13 +1,17 @@
 import contextlib
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from github import GithubException
-from github.Repository import Repository
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import Repo
 from app.database.models.release import Release
+
+if TYPE_CHECKING:
+    from github.Repository import Repository
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.database.models import Repo
 
 
 async def store_latest_release(
