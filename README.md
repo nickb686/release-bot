@@ -1,6 +1,6 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-x.svg)](https://www.python.org/downloads/release/python-312/)
-[![GitHub license](https://img.shields.io/github/license/JanisV/release-bot.svg)](https://github.com/JanisV/release-bot/blob/main/LICENSE)
-[![Latest build](https://github.com/JanisV/release-bot/actions/workflows/docker.yml/badge.svg)](https://github.com/JanisV/release-bot/pkgs/container/release-bot)
+[![GitHub license](https://img.shields.io/github/license/nickb686/release-bot.svg)](https://github.com/nickb686/release-bot/blob/main/LICENSE)
+[![Latest build](https://github.com/nickb686/release-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/nickb686/release-bot/pkgs/container/release-bot)
 
 # release-bot
 
