@@ -31,7 +31,7 @@ jobs:
         run: uv sync --locked --group dev && uv tool install pyrefly
 
       - name: Run lint and tests
-        uses: j178/prek-action@v3.0.0
+        uses: j178/prek-action@v3.0.1
         with:
           extra-args: '--all-files --skip no-commit-to-branch'
 
