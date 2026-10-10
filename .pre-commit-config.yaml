@@ -3,7 +3,7 @@
 
 repos:
   - repo: https://github.com/henryiii/validate-pyproject-schema-store
-    rev: 562b381732c1d2bec9a3a66cc89f63e16d486470  # frozen: 2026.09.30
+    rev: 5b193d04d837e678533afa130323ed2fe86dbf91  # frozen: 2026.10.06
     hooks:
       - id: validate-pyproject
 
@@ -26,14 +26,14 @@ repos:
       - id: check-json
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: a56c0b927e6465d37cae3e97d35d4d18ab2b96cd  # frozen: v0.16.9
+    rev: f12be1ebaa5351c1fc76472de98db2c3446c8253  # frozen: v0.16.10
     hooks:
       - id: ruff-check
         args: [ --fix ]
       - id: ruff-format
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 5403c16080c62d2568b9adab14249214641a9d1a  # frozen: 0.12.21
+    rev: a1785f8e81fe9936d828bef574e6db07e8c8c374  # frozen: 0.12.23
     hooks:
       - id: uv-lock
 
